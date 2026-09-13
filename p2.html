@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目二：业务场景分析 - 课堂小游戏</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        body { min-height: 100vh; padding: 2rem; justify-content: flex-start; }
+        .project-page { width: 100%; max-width: 900px; text-align: center; }
+        .back-link { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-dim); text-decoration: none; margin-bottom: 1rem; font-size: 1rem; transition: color 0.3s; }
+        .back-link:hover { color: var(--primary-light); }
+        .project-page h1 { font-size: 2.2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #f59e0b, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .project-page .subtitle { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 2rem; }
+        .game-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1.5rem; }
+        .game-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: 20px; padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-decoration: none; color: var(--text); transition: all 0.3s; }
+        .game-card:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 15px 40px rgba(245, 158, 11, 0.2); }
+        .game-card .icon { font-size: 4rem; }
+        .game-card h3 { font-size: 1.5rem; }
+        .game-card p { color: var(--text-dim); font-size: 1rem; }
+        .type-tag { padding: 0.4rem 1.2rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .type-quiz { background: rgba(99, 102, 241, 0.2); color: var(--primary-light); }
+        .type-action { background: rgba(245, 158, 11, 0.2); color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="project-page">
+        <a href="index.html" class="back-link">← 返回游戏总目录</a>
+        <h1>🔍 项目二：业务场景分析</h1>
+        <p class="subtitle">5大业务域认知 · 场景分类能力 | 2个课堂小游戏</p>
+        <div class="game-cards">
+            <a href="p2-quiz-domain.html" class="game-card">
+                <div class="icon">🏆</div>
+                <h3>业务域知识擂台</h3>
+                <p>5大业务域知识抢答，分组PK</p>
+                <span class="type-tag type-quiz">知识问答</span>
+            </a>
+            <a href="p2-game-sort.html" class="game-card">
+                <div class="icon">🎯</div>
+                <h3>场景分类大作战</h3>
+                <p>将场景卡片投入正确业务域篮子</p>
+                <span class="type-tag type-action">操作反应</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

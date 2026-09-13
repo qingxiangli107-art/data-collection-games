@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《数据采集与处理》课堂小游戏合集</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        body {
+            min-height: 100vh;
+            padding: 2rem;
+            justify-content: flex-start;
+        }
+        .games-index {
+            width: 100%;
+            max-width: 1400px;
+        }
+        .games-index h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .games-index .intro {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        .project-section {
+            margin-bottom: 2rem;
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .project-section h2 {
+            font-size: 1.4rem;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+            padding-left: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+        .game-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1rem;
+        }
+        .game-card {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s;
+        }
+        .game-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
+        }
+        .game-card .icon {
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+        .game-card .info {
+            flex: 1;
+        }
+        .game-card .info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        .game-card .info p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        .game-card .type-tag {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .type-quiz {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+        }
+        .type-action {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="games-index">
+        <h1>🎮 《数据采集与处理》课堂小游戏</h1>
+        <p class="intro">共12个轻量化小游戏，覆盖课程6大项目 | 打开即玩，无需登录 | 适合投影大屏全班互动</p>
+
+        <div class="project-section">
+            <h2>📊 项目一：认识数据</h2>
+            <div class="game-cards">
+                <a href="p1-quiz-metrics.html" class="game-card">
+                    <div class="icon">⚡</div>
+                    <div class="info">
+                        <h3>数据指标闪电快答</h3>
+                        <p>判断数据指标偏高/正常/偏低，考验数据敏感度</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p1-game-match.html" class="game-card">
+                    <div class="icon">🧩</div>
+                    <div class="info">
+                        <h3>数据类型消消乐</h3>
+                        <p>配对相同数据类型，限时挑战消除</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="project-section">
+            <h2>🔍 项目二：业务场景分析</h2>
+            <div class="game-cards">
+                <a href="p2-quiz-domain.html" class="game-card">
+                    <div class="icon">🏆</div>
+                    <div class="info">
+                        <h3>业务域知识擂台</h3>
+                        <p>5大业务域知识抢答，分组PK</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p2-game-sort.html" class="game-card">
+                    <div class="icon">🎯</div>
+                    <div class="info">
+                        <h3>场景分类大作战</h3>
+                        <p>将场景卡片投入正确业务域篮子</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="project-section">
+            <h2>📋 项目三：采集方法与方案</h2>
+            <div class="game-cards">
+                <a href="p3-quiz-method.html" class="game-card">
+                    <div class="icon">🛡️</div>
+                    <div class="info">
+                        <h3>采集方法一站到底</h3>
+                        <p>连续答对得分递增，答错淘汰</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p3-game-connect.html" class="game-card">
+                    <div class="icon">🔗</div>
+                    <div class="info">
+                        <h3>方法连连看</h3>
+                        <p>数据需求与采集方法配对连线</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="project-section">
+            <h2>🚀 项目四：数据采集实操</h2>
+            <div class="game-cards">
+                <a href="p4-quiz-risk.html" class="game-card">
+                    <div class="icon">🕵️</div>
+                    <div class="info">
+                        <h3>采集风险侦探</h3>
+                        <p>判断采集场景中存在的风险类型</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p4-game-catch.html" class="game-card">
+                    <div class="icon">🎣</div>
+                    <div class="info">
+                        <h3>数据抓取节奏大师</h3>
+                        <p>在正确时机捕获飘过的数据球</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="project-section">
+            <h2>⚙️ 项目五：数据处理</h2>
+            <div class="game-cards">
+                <a href="p5-quiz-clean.html" class="game-card">
+                    <div class="icon">🧼</div>
+                    <div class="info">
+                        <h3>清洗知识大闯关</h3>
+                        <p>三关闯关：缺失值→异常值→重复值</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p5-game-spot.html" class="game-card">
+                    <div class="icon">🔍</div>
+                    <div class="info">
+                        <h3>脏数据来找茬</h3>
+                        <p>在数据表格中找出所有"脏数据"</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="project-section">
+            <h2>🛡️ 项目六：数据管理</h2>
+            <div class="game-cards">
+                <a href="p6-quiz-security.html" class="game-card">
+                    <div class="icon">🔐</div>
+                    <div class="info">
+                        <h3>数据安全知识赛</h3>
+                        <p>备份、同步、安全知识分组PK</p>
+                    </div>
+                    <span class="type-tag type-quiz">知识问答</span>
+                </a>
+                <a href="p6-game-backup.html" class="game-card">
+                    <div class="icon">💾</div>
+                    <div class="info">
+                        <h3>备份接力赛</h3>
+                        <p>按正确顺序排列备份步骤</p>
+                    </div>
+                    <span class="type-tag type-action">操作反应</span>
+                </a>
+            </div>
+        </div>
+
+        <p style="text-align: center; color: var(--text-dim); margin-top: 2rem; font-size: 0.9rem;">
+            💡 提示：点击任意游戏即可开始，支持鼠标点击和键盘快捷键操作
+        </p>
+    </div>
+</body>
+</html>

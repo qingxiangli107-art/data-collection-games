@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 数据指标闪电快答</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">10</div>
+        <div class="game-header">
+            <h1>⚡ 数据指标闪电快答</h1>
+            <div class="subtitle">判断数据指标是偏高、正常还是偏低</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>⚡ 数据指标闪电快答</h2>
+            <p>屏幕会显示一个电商数据指标和数值，你需要在10秒内判断这个指标是<b>偏高</b>、<b>正常</b>还是<b>偏低</b>。</p>
+            <p style="color:var(--text-dim);">适合课堂全班抢答，每人轮流作答！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始挑战</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题</div>
+                <div class="question-box" id="questionBox" style="flex-direction:column;gap:0.5rem;">
+                    <div id="metricName" style="font-size:1.3rem;color:var(--primary-light);"></div>
+                    <div id="metricValue" style="font-size:2.5rem;font-weight:700;"></div>
+                    <div id="metricContext" style="font-size:1rem;color:var(--text-dim);"></div>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1rem;">
+                    <button class="option-btn" id="optHigh" style="min-width:200px;text-align:center;font-size:1.5rem;">📈 偏高</button>
+                    <button class="option-btn" id="optNormal" style="min-width:200px;text-align:center;font-size:1.5rem;">➡️ 正常</button>
+                    <button class="option-btn" id="optLow" style="min-width:200px;text-align:center;font-size:1.5rem;">📉 偏低</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 挑战完成</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const questions = [
+            { name: '跳失率', value: '65%', context: '某淘宝店铺首页', answer: 'high', reason: '跳失率超过50%偏高，说明页面吸引力不足' },
+            { name: '转化率', value: '0.8%', context: '某服装电商店铺', answer: 'low', reason: '电商平均转化率2-3%，0.8%明显偏低' },
+            { name: '客单价', value: '¥320', context: '某美妆品牌店', answer: 'normal', reason: '美妆客单价200-500元属于正常范围' },
+            { name: '复购率', value: '35%', context: '某零食店铺', answer: 'normal', reason: '零食类复购率30-40%属于正常水平' },
+            { name: '退货率', value: '25%', context: '某女装店铺', answer: 'high', reason: '女装退货率一般10-15%，25%明显偏高' },
+            { name: '加购率', value: '12%', context: '某3C数码店', answer: 'normal', reason: '加购率8-15%属于正常范围' },
+            { name: '浏览深度', value: '1.2页', context: '某家居店铺', answer: 'low', reason: '平均浏览深度3-5页，1.2页明显偏低' },
+            { name: 'DSR评分', value: '4.2分', context: '某综合店铺', answer: 'low', reason: 'DSR满分5分，4.7+为优秀，4.2偏低' },
+            { name: '点击率', value: '5.5%', context: '某直通车推广', answer: 'normal', reason: '直通车点击率3-8%属于正常范围' },
+            { name: '连带率', value: '2.8', context: '某百货店铺', answer: 'high', reason: '连带率1.5-2.5为正常，2.8表现优秀' },
+            { name: '静默下单率', value: '55%', context: '某成熟品牌店', answer: 'normal', reason: '静默下单率40-60%属于正常' },
+            { name: '收藏加购比', value: '1:8', context: '某新品店铺', answer: 'low', reason: '正常收藏加购比约1:3到1:5，1:8偏低' }
+        ];
+
+        let currentQ = 0, score = 0, timerObj = null, gameQuestions = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('optHigh').onclick = () => answer('high');
+        document.getElementById('optNormal').onclick = () => answer('normal');
+        document.getElementById('optLow').onclick = () => answer('low');
+
+        function startGame() {
+            currentQ = 0; score = 0;
+            gameQuestions = shuffle(questions).slice(0, 10);
+            document.getElementById('score').textContent = '0';
+            document.getElementById('qTotal').textContent = gameQuestions.length;
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= gameQuestions.length) {
+                endGame();
+                return;
+            }
+            const q = gameQuestions[currentQ];
+            document.getElementById('qNum').textContent = currentQ + 1;
+            document.getElementById('metricName').textContent = q.name;
+            document.getElementById('metricValue').textContent = q.value;
+            document.getElementById('metricContext').textContent = '场景：' + q.context;
+
+            ['optHigh','optNormal','optLow'].forEach(id => {
+                document.getElementById(id).className = 'option-btn';
+                document.getElementById(id).disabled = false;
+            });
+
+            document.getElementById('timer').textContent = '10';
+            document.getElementById('timer').classList.remove('warning');
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(10, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 3) document.getElementById('timer').classList.add('warning');
+            }, () => {
+                answer(null);
+            });
+        }
+
+        function answer(choice) {
+            if (timerObj) timerObj.stop();
+            const q = gameQuestions[currentQ];
+            const correct = choice === q.answer;
+
+            if (correct) {
+                score += 10;
+                updateScore(score);
+                showFeedback('✓', 'correct');
+                document.getElementById('opt' + (choice==='high'?'High':choice==='normal'?'Normal':'Low')).classList.add('correct');
+            } else {
+                showFeedback('✗', 'wrong');
+                if (choice) document.getElementById('opt' + (choice==='high'?'High':choice==='normal'?'Normal':'Low')).classList.add('wrong');
+                document.getElementById('opt' + (q.answer==='high'?'High':q.answer==='normal'?'Normal':'Low')).classList.add('correct');
+            }
+
+            ['optHigh','optNormal','optLow'].forEach(id => document.getElementById(id).disabled = true);
+
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 1500);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 90) msg = '🏆 数据敏感度大师！你对数据指标了如指掌！';
+            else if (score >= 70) msg = '⭐ 表现不错！继续加强数据敏感度训练！';
+            else if (score >= 50) msg = '💪 还有提升空间，多关注实际业务数据！';
+            else msg = '📚 建议多复习数据指标的正常范围哦！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

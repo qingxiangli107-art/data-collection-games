@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 脏数据来找茬</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .spot-table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            font-size: 1.1rem;
+        }
+        .spot-table th, .spot-table td {
+            border: 2px solid var(--border);
+            padding: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .spot-table th {
+            background: rgba(99, 102, 241, 0.3);
+            font-weight: 700;
+        }
+        .spot-table td:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .spot-table td.dirty {
+            cursor: pointer;
+        }
+        .spot-table td.found {
+            background: rgba(16, 185, 129, 0.3) !important;
+            border-color: var(--success);
+        }
+        .spot-table td.found::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            color: var(--success);
+            font-size: 0.9rem;
+        }
+        .spot-table td.wrong-click {
+            animation: shake 0.5s;
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .hint-bar {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .hint-tag {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .hint-missing { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .hint-abnormal { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .hint-duplicate { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+        .hint-format { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">90</div>
+        <div class="game-header">
+            <h1>🔍 脏数据来找茬</h1>
+            <div class="subtitle">在数据表格中找出所有"脏数据"</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🔍 脏数据来找茬</h2>
+            <p>屏幕上会显示一张数据表格，其中隐藏着若干<b>"脏数据"</b>。</p>
+            <p style="color:var(--text-dim);">脏数据类型包括：缺失值、异常值、重复值、格式错误</p>
+            <div style="background:var(--bg);border-radius:12px;padding:1rem;margin:1rem 0;">
+                <div class="hint-bar" style="margin:0;">
+                    <span class="hint-tag hint-missing">缺失值</span>
+                    <span class="hint-tag hint-abnormal">异常值</span>
+                    <span class="hint-tag hint-duplicate">重复值</span>
+                    <span class="hint-tag hint-format">格式错误</span>
+                </div>
+            </div>
+            <p style="color:var(--accent);">找对+15分，点错-5分！⏱️ 限时90秒</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始找茬</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="hint-bar">
+                    <span class="hint-tag hint-missing">🔴 缺失值</span>
+                    <span class="hint-tag hint-abnormal">🟡 异常值</span>
+                    <span class="hint-tag hint-duplicate">🔵 重复值</span>
+                    <span class="hint-tag hint-format">🟢 格式错误</span>
+                </div>
+                <div style="font-size:1.2rem;color:var(--accent);margin-bottom:0.5rem;">
+                    已找到：<span id="found">0</span> / <span id="totalDirty">0</span>
+                </div>
+                <div style="overflow:auto;max-height:50vh;">
+                    <table class="spot-table" id="spotTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 找茬结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p style="font-size:1.2rem;color:var(--text-dim);">找到 <span id="finalFound">0</span> / <span id="finalTotal">0</span> 个脏数据</p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const datasets = [
+            {
+                headers: ['订单ID', '客户姓名', '商品', '金额', '日期', '状态'],
+                rows: [
+                    ['ORD001', '张三', '手机壳', '29.9', '2025-01-15', '已完成'],
+                    ['ORD002', '李四', '数据线', '15.5', '2025-01-16', '已完成'],
+                    ['ORD003', '', '蓝牙耳机', '199', '2025-01-16', '待发货'],
+                    ['ORD004', '王五', '充电宝', '99999', '2025-01-17', '已完成'],
+                    ['ORD002', '李四', '数据线', '15.5', '2025-01-16', '已完成'],
+                    ['ORD006', '赵六', '手机支架', '12.8', '2025/01/18', '已完成'],
+                    ['ORD007', '钱七', '屏幕膜', '9.9', '2025-01-19', ''],
+                    ['ORD008', '孙八', '充电器', '49', '2025-01-20', '已完成'],
+                    ['ORD009', '周九', '耳机', '-15', '2025-01-21', '已取消']
+                ],
+                dirty: [
+                    {r: 2, c: 1, type: 'missing'},  // 客户姓名空
+                    {r: 3, c: 3, type: 'abnormal'}, // 金额99999异常
+                    {r: 4, c: 0, type: 'duplicate'}, // 订单ID重复
+                    {r: 5, c: 4, type: 'format'},   // 日期格式错误
+                    {r: 6, c: 5, type: 'missing'},  // 状态空
+                    {r: 8, c: 3, type: 'abnormal'}  // 金额负数
+                ]
+            },
+            {
+                headers: ['用户ID', '年龄', '城市', '注册时间', '消费金额', '会员等级'],
+                rows: [
+                    ['U001', '25', '北京', '2024-03-01', '1250.50', '金牌'],
+                    ['U002', '32', '上海', '2024-03-05', '890.00', '银牌'],
+                    ['U003', '150', '广州', '2024-03-10', '450.00', '铜牌'],
+                    ['U004', '28', '深圳', '2024-03-12', '2100.00', '金牌'],
+                    ['U005', '45', '北京', '2024-03-01', '1250.50', '金牌'],
+                    ['U006', '', '杭州', '2024年3月20日', '560.00', '银牌'],
+                    ['U007', '33', '成都', '2024-03-25', '0.01', '铜牌'],
+                    ['U008', '29', '武汉', '2024-03-28', '1800.00', ''],
+                    ['U009', '41', '南京', '2024-04-01', '320.00', '银牌']
+                ],
+                dirty: [
+                    {r: 2, c: 1, type: 'abnormal'}, // 年龄150异常
+                    {r: 4, c: 0, type: 'duplicate'}, // U001和U005数据重复
+                    {r: 5, c: 1, type: 'missing'},   // 年龄空
+                    {r: 5, c: 3, type: 'format'},    // 日期格式错误
+                    {r: 6, c: 4, type: 'abnormal'},  // 消费0.01异常
+                    {r: 7, c: 5, type: 'missing'}    // 会员等级空
+                ]
+            }
+        ];
+
+        let score = 0, foundCount = 0, gameData = null, timerObj = null;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            score = 0; foundCount = 0;
+            document.getElementById('score').textContent = '0';
+            gameData = datasets[Math.floor(Math.random() * datasets.length)];
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            document.getElementById('timer').textContent = '90';
+            document.getElementById('found').textContent = '0';
+            document.getElementById('totalDirty').textContent = gameData.dirty.length;
+            renderTable();
+
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(90, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+        }
+
+        function renderTable() {
+            const table = document.getElementById('spotTable');
+            table.innerHTML = '';
+
+            const thead = document.createElement('thead');
+            const hRow = document.createElement('tr');
+            gameData.headers.forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                hRow.appendChild(th);
+            });
+            thead.appendChild(hRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            gameData.rows.forEach((row, rIdx) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, cIdx) => {
+                    const td = document.createElement('td');
+                    td.textContent = cell || '(空)';
+                    td.dataset.r = rIdx;
+                    td.dataset.c = cIdx;
+                    const isDirty = gameData.dirty.some(d => d.r === rIdx && d.c === cIdx);
+                    if (isDirty) td.classList.add('dirty');
+                    td.onclick = () => clickCell(td, rIdx, cIdx);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+        }
+
+        function clickCell(td, r, c) {
+            if (td.classList.contains('found') || td.classList.contains('wrong-click')) return;
+
+            const dirty = gameData.dirty.find(d => d.r === r && d.c === c);
+            if (dirty) {
+                score += 15;
+                foundCount++;
+                updateScore(score);
+                document.getElementById('found').textContent = foundCount;
+                td.classList.add('found');
+                showFeedback('✓', 'correct');
+                if (foundCount >= gameData.dirty.length) {
+                    if (timerObj) timerObj.stop();
+                    setTimeout(endGame, 500);
+                }
+            } else {
+                score = Math.max(0, score - 5);
+                updateScore(score);
+                td.classList.add('wrong-click');
+                showFeedback('✗', 'wrong');
+                setTimeout(() => td.classList.remove('wrong-click'), 500);
+            }
+        }
+
+        function endGame() {
+            if (timerObj) timerObj.stop();
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalFound').textContent = foundCount;
+            document.getElementById('finalTotal').textContent = gameData.dirty.length;
+            let msg = '';
+            if (foundCount >= gameData.dirty.length) msg = '🏆 火眼金睛！所有脏数据都被你找出来了！';
+            else if (foundCount >= gameData.dirty.length * 0.7) msg = '⭐ 观察力不错！继续训练！';
+            else msg = '💪 多留意缺失值、异常值、重复值和格式错误！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

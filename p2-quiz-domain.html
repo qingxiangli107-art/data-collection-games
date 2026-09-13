@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 业务域知识擂台</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-header">
+            <h1>🏆 业务域知识擂台</h1>
+            <div class="subtitle">5大业务域知识抢答，分组PK</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🏆 业务域知识擂台</h2>
+            <p>5大电商业务域（营销/商品/渠道/物流/服务）各出2道题，共10题。</p>
+            <p style="color:var(--text-dim);">全班分为若干小组，轮流抢答，答对得分！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始擂台</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">
+                    第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题 | 
+                    <span id="domainTag" style="color:var(--accent);font-weight:700;"></span>
+                </div>
+                <div class="question-box" id="questionBox"></div>
+                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 擂台结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const questions = [
+            { domain: '营销域', q: '以下哪个指标最能反映广告投放效果？', options: ['曝光量', '点击率', '收藏数', '分享数'], answer: 1 },
+            { domain: '营销域', q: 'ROI（投资回报率）的计算公式是？', options: ['利润÷成本', '销售额÷成本', '（收益-成本）÷成本', '点击量÷曝光量'], answer: 2 },
+            { domain: '商品域', q: '商品SKU是指？', options: ['商品编号', '库存量单位', '商品分类', '销售价格'], answer: 1 },
+            { domain: '商品域', q: '以下哪个属于商品域核心指标？', options: ['物流时效', '商品转化率', '客服响应时间', '退货处理速度'], answer: 1 },
+            { domain: '渠道域', q: '全域营销中的"全域"指的是？', options: ['所有商品', '所有平台渠道', '所有用户', '所有地区'], answer: 1 },
+            { domain: '渠道域', q: '以下哪个不属于常见的电商渠道？', options: ['淘宝', '抖音', '微信朋友圈', 'ERP系统'], answer: 3 },
+            { domain: '物流域', q: '物流供应链中，WMS是指？', options: ['仓库管理系统', '运输管理系统', '订单管理系统', '客户管理系统'], answer: 0 },
+            { domain: '物流域', q: '以下哪个指标最能反映物流效率？', options: ['库存周转率', '发货及时率', '订单取消率', '页面停留时间'], answer: 1 },
+            { domain: '服务域', q: 'DSR评分包含哪三个维度？', options: ['描述相符/服务态度/发货速度', '价格/质量/速度', '好评/中评/差评', '售前/售中/售后'], answer: 0 },
+            { domain: '服务域', q: '客服首次响应时间的行业标准一般是？', options: ['5分钟内', '30秒内', '1小时内', '24小时内'], answer: 1 }
+        ];
+
+        let currentQ = 0, score = 0, gameQuestions = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            currentQ = 0; score = 0;
+            gameQuestions = shuffle(questions);
+            document.getElementById('score').textContent = '0';
+            document.getElementById('qTotal').textContent = gameQuestions.length;
+            showScreen('game');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= gameQuestions.length) {
+                endGame();
+                return;
+            }
+            const q = gameQuestions[currentQ];
+            document.getElementById('qNum').textContent = currentQ + 1;
+            document.getElementById('domainTag').textContent = q.domain;
+            document.getElementById('questionBox').textContent = q.q;
+
+            const opts = document.getElementById('optionsArea');
+            opts.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = String.fromCharCode(65 + i) + '. ' + opt;
+                btn.onclick = () => answer(i);
+                opts.appendChild(btn);
+            });
+        }
+
+        function answer(choice) {
+            const q = gameQuestions[currentQ];
+            const correct = choice === q.answer;
+            const btns = document.getElementById('optionsArea').children;
+
+            if (correct) {
+                score += 10;
+                updateScore(score);
+                showFeedback('✓', 'correct');
+                btns[choice].classList.add('correct');
+            } else {
+                showFeedback('✗', 'wrong');
+                btns[choice].classList.add('wrong');
+                btns[q.answer].classList.add('correct');
+            }
+
+            for (let btn of btns) btn.disabled = true;
+
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 1500);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 90) msg = '🏆 业务域知识大师！你对电商业务了如指掌！';
+            else if (score >= 70) msg = '⭐ 表现优秀！继续深化业务理解！';
+            else if (score >= 50) msg = '💪 基础不错，建议多关注各业务域指标！';
+            else msg = '📚 建议多复习5大业务域的核心知识！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

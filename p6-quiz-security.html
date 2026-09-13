@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 数据安全知识赛</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-header">
+            <h1>🔐 数据安全知识赛</h1>
+            <div class="subtitle">数据备份、同步、安全知识分组PK</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🔐 数据安全知识赛</h2>
+            <p>数据备份、同步、安全管理相关判断题和选择题。</p>
+            <p style="color:var(--text-dim);">全班分为若干小组，轮流抢答，答对得分！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始PK</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题</div>
+                <div class="question-box" id="questionBox"></div>
+                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 PK结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const questions = [
+            { q: '数据备份只需要做一次，之后不需要再备份。', type: 'tf', answer: false },
+            { q: '云同步可以实现多设备间的数据实时更新。', type: 'tf', answer: true },
+            { q: '以下哪种备份方式最安全？', type: 'choice', options: ['只在本地备份', '只在云端备份', '本地+云端双重备份', '不做备份'], answer: 2 },
+            { q: '数据备份的"3-2-1法则"是指？', type: 'choice', options: ['3份数据、2种介质、1份异地', '3天备份、2种格式、1个位置', '3个用户、2台设备、1个账号', '3次验证、2层加密、1个密码'], answer: 0 },
+            { q: 'WPS Office文档云同步的优势不包括？', type: 'choice', options: ['多设备访问', '自动保存历史版本', '无需网络', '协作编辑'], answer: 2 },
+            { q: '数据加密的主要目的是？', type: 'choice', options: ['提高访问速度', '防止未授权访问', '减少存储空间', '便于数据共享'], answer: 1 },
+            { q: '定期删除旧数据可以替代数据备份。', type: 'tf', answer: false },
+            { q: '数据权限管理应该遵循"最小权限原则"。', type: 'tf', answer: true },
+            { q: '以下哪个不是数据安全威胁？', type: 'choice', options: ['黑客攻击', '硬件故障', '数据备份', '内部人员泄露'], answer: 2 },
+            { q: '数据灾难恢复计划（DRP）的主要目的是？', type: 'choice', options: ['防止灾难发生', '灾难发生后快速恢复数据', '降低硬件成本', '提高员工效率'], answer: 1 }
+        ];
+
+        let currentQ = 0, score = 0, gameQuestions = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            currentQ = 0; score = 0;
+            document.getElementById('score').textContent = '0';
+            gameQuestions = shuffle(questions);
+            showScreen('game');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= gameQuestions.length) {
+                endGame();
+                return;
+            }
+            const q = gameQuestions[currentQ];
+            document.getElementById('qNum').textContent = currentQ + 1;
+            document.getElementById('qTotal').textContent = gameQuestions.length;
+            document.getElementById('questionBox').textContent = q.q;
+
+            const opts = document.getElementById('optionsArea');
+            opts.innerHTML = '';
+
+            if (q.type === 'tf') {
+                ['✅ 正确', '❌ 错误'].forEach((text, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = text;
+                    btn.style.fontSize = '1.5rem';
+                    btn.onclick = () => answer(i === 0);
+                    opts.appendChild(btn);
+                });
+            } else {
+                q.options.forEach((opt, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = String.fromCharCode(65 + i) + '. ' + opt;
+                    btn.onclick = () => answer(i);
+                    opts.appendChild(btn);
+                });
+            }
+        }
+
+        function answer(choice) {
+            const q = gameQuestions[currentQ];
+            const correct = choice === q.answer;
+            const btns = document.getElementById('optionsArea').children;
+
+            if (correct) {
+                score += 10;
+                updateScore(score);
+                showFeedback('✓', 'correct');
+                if (q.type === 'tf') {
+                    btns[choice ? 1 : 0].classList.add('correct');
+                } else {
+                    btns[choice].classList.add('correct');
+                }
+            } else {
+                showFeedback('✗', 'wrong');
+                if (q.type === 'tf') {
+                    btns[choice ? 1 : 0].classList.add('wrong');
+                    btns[q.answer ? 1 : 0].classList.add('correct');
+                } else {
+                    btns[choice].classList.add('wrong');
+                    btns[q.answer].classList.add('correct');
+                }
+            }
+
+            for (let btn of btns) btn.disabled = true;
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 1500);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 90) msg = '🏆 数据安全专家！安全意识满分！';
+            else if (score >= 70) msg = '⭐ 安全意识很强！继续保持！';
+            else if (score >= 50) msg = '💪 基础不错，建议多关注数据安全规范！';
+            else msg = '📚 数据安全很重要，建议认真学习相关知识！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

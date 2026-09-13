@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💾 备份接力赛</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .backup-area {
+            width: 100%;
+            max-width: 800px;
+        }
+        .steps-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            min-height: 100px;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 16px;
+            border: 2px dashed var(--border);
+        }
+        .step-item {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .step-item:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(99,102,241,0.3); }
+        .step-item.used { opacity: 0.3; pointer-events: none; }
+        .sequence-area {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+        .sequence-slot {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 1.2rem;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .sequence-slot .slot-num {
+            background: var(--primary);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .sequence-slot.filled {
+            border-color: var(--success);
+            background: rgba(16,185,129,0.1);
+        }
+        .sequence-slot.filled .slot-num {
+            background: var(--success);
+        }
+        .sequence-slot.wrong {
+            border-color: var(--danger);
+            background: rgba(239,68,68,0.1);
+        }
+        .sequence-slot.wrong .slot-num {
+            background: var(--danger);
+        }
+        .btn-area {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">60</div>
+        <div class="game-header">
+            <h1>💾 备份接力赛</h1>
+            <div class="subtitle">按正确顺序排列备份步骤</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>💾 备份接力赛</h2>
+            <p>屏幕上方是打乱的<b>备份步骤</b>，下方是4个空位。<br>请按正确的备份流程，依次点击步骤填入下方空位。</p>
+            <div style="background:var(--bg);border-radius:12px;padding:1rem;margin:1rem 0;text-align:left;max-width:500px;">
+                <p style="margin:0.3rem 0;color:var(--text-dim);">提示：正确的备份流程是...</p>
+                <p style="margin:0.3rem 0;">1️⃣ 明确备份对象 → 2️⃣ 选择备份方式 → 3️⃣ 执行备份 → 4️⃣ 验证备份</p>
+            </div>
+            <p style="color:var(--accent);">顺序正确+20分，顺序错误-10分！⏱️ 限时60秒</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始接力</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="backup-area">
+                    <div style="font-size:1.1rem;color:var(--text-dim);margin-bottom:0.5rem;">点击步骤，按正确顺序排列：</div>
+                    <div class="steps-pool" id="stepsPool"></div>
+                    <div class="sequence-area" id="sequenceArea"></div>
+                    <div class="btn-area">
+                        <button class="btn btn-primary" id="checkBtn">检查顺序</button>
+                        <button class="btn btn-danger" id="resetBtn">重置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 接力结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p style="font-size:1.2rem;color:var(--text-dim);">完成轮数：<span id="finalRounds">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const backupSteps = [
+            { text: '🔍 明确备份对象', order: 1 },
+            { text: '⚙️ 选择备份方式', order: 2 },
+            { text: '▶️ 执行备份操作', order: 3 },
+            { text: '✅ 验证备份结果', order: 4 }
+        ];
+
+        const allSteps = [
+            ...backupSteps,
+            { text: '🗑️ 删除原始数据', order: 0 },
+            { text: '📤 分享备份文件', order: 0 },
+            { text: '🔐 修改备份密码', order: 0 },
+            { text: '📊 分析备份数据', order: 0 }
+        ];
+
+        let score = 0, rounds = 0, sequence = [], gameSteps = [], timerObj = null, gameActive = false;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('checkBtn').onclick = checkSequence;
+        document.getElementById('resetBtn').onclick = resetSequence;
+
+        function startGame() {
+            score = 0; rounds = 0;
+            document.getElementById('score').textContent = '0';
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            document.getElementById('timer').textContent = '60';
+            gameActive = true;
+            newRound();
+
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(60, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+        }
+
+        function newRound() {
+            sequence = [];
+            gameSteps = shuffle([...allSteps]).slice(0, 6);
+            renderSteps();
+            renderSequence();
+        }
+
+        function renderSteps() {
+            const pool = document.getElementById('stepsPool');
+            pool.innerHTML = '';
+            gameSteps.forEach((step, i) => {
+                const div = document.createElement('div');
+                div.className = 'step-item';
+                div.textContent = step.text;
+                div.dataset.index = i;
+                if (sequence.includes(i)) div.classList.add('used');
+                div.onclick = () => clickStep(i);
+                pool.appendChild(div);
+            });
+        }
+
+        function renderSequence() {
+            const area = document.getElementById('sequenceArea');
+            area.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'sequence-slot';
+                const stepIdx = sequence[i];
+                if (stepIdx !== undefined) {
+                    slot.classList.add('filled');
+                    slot.innerHTML = `<span class="slot-num">${i + 1}</span><span>${gameSteps[stepIdx].text}</span>`;
+                } else {
+                    slot.innerHTML = `<span class="slot-num">${i + 1}</span><span style="color:var(--text-dim);">点击上方步骤填入...</span>`;
+                }
+                area.appendChild(slot);
+            }
+        }
+
+        function clickStep(idx) {
+            if (!gameActive || sequence.includes(idx) || sequence.length >= 4) return;
+            sequence.push(idx);
+            renderSteps();
+            renderSequence();
+        }
+
+        function resetSequence() {
+            sequence = [];
+            renderSteps();
+            renderSequence();
+        }
+
+        function checkSequence() {
+            if (sequence.length !== 4) {
+                showToast('请先填入4个步骤！');
+                return;
+            }
+
+            const selectedSteps = sequence.map(i => gameSteps[i]);
+            const correctOrder = selectedSteps.every((step, i) => step.order === i + 1);
+
+            const slots = document.getElementById('sequenceArea').children;
+            if (correctOrder) {
+                score += 20;
+                updateScore(score);
+                rounds++;
+                showFeedback('✓ 正确!', 'correct');
+                for (let slot of slots) slot.style.borderColor = 'var(--success)';
+                setTimeout(() => {
+                    showToast(`🎉 第${rounds}轮完成！`, 1500);
+                    newRound();
+                }, 1500);
+            } else {
+                score = Math.max(0, score - 10);
+                updateScore(score);
+                showFeedback('✗ 顺序错误', 'wrong');
+                for (let slot of slots) {
+                    slot.classList.add('wrong');
+                }
+                setTimeout(() => {
+                    for (let slot of slots) slot.classList.remove('wrong');
+                    resetSequence();
+                }, 1500);
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            if (timerObj) timerObj.stop();
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalRounds').textContent = rounds;
+            let msg = '';
+            if (rounds >= 5) msg = '🏆 备份流程大师！你对数据备份了如指掌！';
+            else if (rounds >= 3) msg = '⭐ 不错的成绩！继续熟悉备份流程！';
+            else msg = '💪 记住：明确对象→选择方式→执行备份→验证结果！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

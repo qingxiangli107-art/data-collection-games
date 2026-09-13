@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕵️ 采集风险侦探</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-header">
+            <h1>🕵️ 采集风险侦探</h1>
+            <div class="subtitle">判断采集场景中存在的风险类型</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🕵️ 采集风险侦探</h2>
+            <p>给出一个数据采集场景，你需要<b>判断存在哪些风险</b>。</p>
+            <p style="color:var(--text-dim);">风险类型：法律风险 / 技术风险 / 数据质量风险 / 伦理风险</p>
+            <p style="color:var(--accent);">选对+10分/项，选错-5分/项！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始侦探</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">第 <span id="qNum">1</span> / <span id="qTotal">8</span> 案</div>
+                <div class="question-box" id="questionBox" style="flex-direction:column;gap:0.5rem;">
+                    <div id="scenarioText" style="font-size:1.3rem;"></div>
+                </div>
+                <div style="font-size:1.1rem;color:var(--accent);margin:1rem 0;">请选择该场景存在的风险（可多选）：</div>
+                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+                <button class="btn btn-primary" id="confirmBtn" style="margin-top:1rem;">确认答案</button>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 侦探任务完成</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再次侦探</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const scenarios = [
+            {
+                text: '使用爬虫采集某电商平台的商品价格数据，包括商品详情页的所有信息。',
+                risks: [true, true, false, false],
+                explain: '法律风险：可能违反网站robots协议；技术风险：反爬机制可能导致IP被封'
+            },
+            {
+                text: '通过问卷调查收集用户的姓名、手机号、家庭住址等个人信息。',
+                risks: [true, false, false, true],
+                explain: '法律风险：需遵守个人信息保护法；伦理风险：涉及用户隐私'
+            },
+            {
+                text: '从第三方数据平台购买"脱敏"后的用户行为数据用于分析。',
+                risks: [true, false, true, true],
+                explain: '法律风险：需确认数据来源合法性；数据质量风险：脱敏可能不完整；伦理风险：存在重识别风险'
+            },
+            {
+                text: '采集社交媒体上的公开评论数据进行情感分析。',
+                risks: [false, false, true, true],
+                explain: '数据质量风险：评论可能存在水军；伦理风险：需考虑用户知情同意'
+            },
+            {
+                text: '在高峰期同时发起大量API请求获取实时库存数据。',
+                risks: [false, true, false, false],
+                explain: '技术风险：可能导致对方服务器过载，触发限流或封号'
+            },
+            {
+                text: '将采集到的竞争对手内部销售数据分享给同行。',
+                risks: [true, false, false, true],
+                explain: '法律风险：可能涉及商业秘密侵权；伦理风险：不正当竞争'
+            },
+            {
+                text: '使用自动化脚本每小时采集一次某网站的全部页面内容。',
+                risks: [true, true, false, false],
+                explain: '法律风险：高频采集可能违反服务条款；技术风险：对目标网站造成负担'
+            },
+            {
+                text: '采集用户的浏览历史记录用于个性化推荐，但未告知用户。',
+                risks: [true, false, false, true],
+                explain: '法律风险：违反个人信息保护法告知义务；伦理风险：侵犯用户知情权'
+            }
+        ];
+
+        const riskLabels = ['📜 法律风险', '💻 技术风险', '📊 数据质量风险', '⚖️ 伦理风险'];
+        let currentQ = 0, score = 0, gameScenarios = [], selected = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('confirmBtn').onclick = confirmAnswer;
+
+        function startGame() {
+            currentQ = 0; score = 0;
+            document.getElementById('score').textContent = '0';
+            gameScenarios = shuffle(scenarios);
+            showScreen('game');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= gameScenarios.length) {
+                endGame();
+                return;
+            }
+            const s = gameScenarios[currentQ];
+            selected = [];
+            document.getElementById('qNum').textContent = currentQ + 1;
+            document.getElementById('qTotal').textContent = gameScenarios.length;
+            document.getElementById('scenarioText').textContent = s.text;
+
+            const opts = document.getElementById('optionsArea');
+            opts.innerHTML = '';
+            riskLabels.forEach((label, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = label;
+                btn.onclick = () => toggleRisk(btn, i);
+                opts.appendChild(btn);
+            });
+            document.getElementById('confirmBtn').style.display = 'inline-block';
+            document.getElementById('confirmBtn').textContent = '确认答案';
+            document.getElementById('confirmBtn').disabled = false;
+        }
+
+        function toggleRisk(btn, idx) {
+            if (selected.includes(idx)) {
+                selected = selected.filter(i => i !== idx);
+                btn.classList.remove('selected');
+                btn.style.borderColor = 'var(--border)';
+            } else {
+                selected.push(idx);
+                btn.classList.add('selected');
+                btn.style.borderColor = 'var(--primary)';
+            }
+        }
+
+        function confirmAnswer() {
+            const s = gameScenarios[currentQ];
+            let qScore = 0;
+            const btns = document.getElementById('optionsArea').children;
+
+            s.risks.forEach((isRisk, i) => {
+                const selectedRisk = selected.includes(i);
+                if (isRisk && selectedRisk) {
+                    qScore += 10;
+                    btns[i].classList.add('correct');
+                } else if (!isRisk && selectedRisk) {
+                    qScore -= 5;
+                    btns[i].classList.add('wrong');
+                } else if (isRisk && !selectedRisk) {
+                    btns[i].style.borderColor = 'var(--success)';
+                    btns[i].style.background = 'rgba(16,185,129,0.2)';
+                }
+            });
+
+            score += qScore;
+            updateScore(score);
+            document.getElementById('confirmBtn').textContent = s.explain;
+            document.getElementById('confirmBtn').disabled = true;
+
+            for (let btn of btns) btn.disabled = true;
+
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 3000);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 150) msg = '🏆 风险侦探大师！你对采集风险了如指掌！';
+            else if (score >= 100) msg = '⭐ 敏锐的洞察力！继续保持！';
+            else if (score >= 50) msg = '💪 基础不错，建议多关注数据合规！';
+            else msg = '📚 建议深入学习数据采集的法律和伦理规范！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧼 清洗知识大闯关</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-header">
+            <h1>🧼 清洗知识大闯关</h1>
+            <div class="subtitle">三关闯关：缺失值→异常值→重复值</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🧼 清洗知识大闯关</h2>
+            <p>共三关，每关5题，答对进入下一关！</p>
+            <div style="background:var(--bg);border-radius:12px;padding:1rem;margin:1rem 0;text-align:left;max-width:500px;">
+                <p style="margin:0.3rem 0;"><b>第一关</b> 🕳️ 缺失值处理</p>
+                <p style="margin:0.3rem 0;"><b>第二关</b> 📈 异常值识别</p>
+                <p style="margin:0.3rem 0;"><b>第三关</b> 🔄 重复值去重</p>
+            </div>
+            <p style="color:var(--text-dim);">全班分组闯关，看哪组通关最快！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始闯关</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.3rem;color:var(--accent);margin-bottom:1rem;">
+                    第 <span id="levelNum">1</span> 关：<span id="levelName">缺失值处理</span>
+                    （<span id="qInLevel">1</span>/5）
+                </div>
+                <div class="progress-bar" style="max-width:600px;">
+                    <div class="progress-fill" id="progressFill" style="width:0%;background:linear-gradient(90deg,var(--primary),var(--accent));"></div>
+                </div>
+                <div class="question-box" id="questionBox"></div>
+                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2 id="endTitle">🎉 闯关完成</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p style="font-size:1.3rem;color:var(--text-dim);">通关层数：<span id="finalLevel">0</span> / 3</p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再次闯关</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const levels = [
+            {
+                name: '🕳️ 缺失值处理',
+                questions: [
+                    { q: '某字段有大量缺失值，且该字段对分析不重要，最佳处理方式是？', options: ['删除该列', '填充均值', '填充中位数', '预测填充'], answer: 0 },
+                    { q: '对于数值型缺失值，最常用的填充方法是？', options: ['删除整行', '填充0', '填充均值或中位数', '不做处理'], answer: 2 },
+                    { q: '时间序列数据中的缺失值，适合用什么方法填充？', options: ['随机填充', '前向填充或插值', '填充众数', '删除'], answer: 1 },
+                    { q: '分类变量的缺失值，适合用什么填充？', options: ['均值', '中位数', '众数或"未知"', '0'], answer: 2 },
+                    { q: '缺失值占比超过多少时，通常建议直接删除该字段？', options: ['10%', '30%', '50%', '70%'], answer: 2 }
+                ]
+            },
+            {
+                name: '📈 异常值识别',
+                questions: [
+                    { q: '识别异常值最常用的统计方法是？', options: ['均值法', '标准差法（3σ原则）', '中位数法', '众数法'], answer: 1 },
+                    { q: '箱线图中，超出上下 whisker 的数据点通常被视为？', options: ['正常值', '异常值', '缺失值', '重复值'], answer: 1 },
+                    { q: '某用户订单金额为999999元，最可能是？', options: ['VIP大客户', '测试数据/异常值', '促销订单', '团购订单'], answer: 1 },
+                    { q: '对于异常值的处理，以下哪种方式最合理？', options: ['一律删除', '一律保留', '根据业务场景判断', '替换为均值'], answer: 2 },
+                    { q: 'IQR（四分位距）法中，异常值通常定义为超出多少倍IQR？', options: ['1倍', '1.5倍', '2倍', '3倍'], answer: 1 }
+                ]
+            },
+            {
+                name: '🔄 重复值去重',
+                questions: [
+                    { q: '数据去重时，以下哪种情况属于真正的重复？', options: ['同一用户多次购买', '完全相同的记录', '相似但不完全相同的记录', '同一时间的记录'], answer: 1 },
+                    { q: '去重时保留重复记录的哪一条最合适？', options: ['第一条', '最后一条', '最新时间的记录', '随机一条'], answer: 2 },
+                    { q: '部分字段相同但其他字段不同的记录，应该？', options: ['全部删除', '合并记录', '全部保留', '随机删除一条'], answer: 1 },
+                    { q: '在SQL中，用于去重的关键字是？', options: ['GROUP BY', 'DISTINCT', 'UNIQUE', 'ORDER BY'], answer: 1 },
+                    { q: '去重前应该先做什么？', options: ['直接删除', '统计分析重复情况', '填充缺失值', '排序'], answer: 1 }
+                ]
+            }
+        ];
+
+        let currentLevel = 0, currentQ = 0, score = 0, gameQuestions = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            currentLevel = 0; currentQ = 0; score = 0;
+            document.getElementById('score').textContent = '0';
+            showScreen('game');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentLevel >= levels.length) {
+                endGame(true);
+                return;
+            }
+            const level = levels[currentLevel];
+            if (currentQ >= level.questions.length) {
+                currentLevel++;
+                currentQ = 0;
+                if (currentLevel < levels.length) {
+                    showToast(`🎉 恭喜通过第${currentLevel}关！进入${levels[currentLevel].name}`, 2000);
+                }
+                showQuestion();
+                return;
+            }
+
+            const q = level.questions[currentQ];
+            document.getElementById('levelNum').textContent = currentLevel + 1;
+            document.getElementById('levelName').textContent = level.name;
+            document.getElementById('qInLevel').textContent = currentQ + 1;
+            document.getElementById('progressFill').style.width = ((currentLevel * 5 + currentQ) / 15 * 100) + '%';
+            document.getElementById('questionBox').textContent = q.q;
+
+            const opts = document.getElementById('optionsArea');
+            opts.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = String.fromCharCode(65 + i) + '. ' + opt;
+                btn.onclick = () => answer(i);
+                opts.appendChild(btn);
+            });
+        }
+
+        function answer(choice) {
+            const level = levels[currentLevel];
+            const q = level.questions[currentQ];
+            const correct = choice === q.answer;
+            const btns = document.getElementById('optionsArea').children;
+
+            if (correct) {
+                score += 10;
+                updateScore(score);
+                showFeedback('✓', 'correct');
+                btns[choice].classList.add('correct');
+            } else {
+                showFeedback('✗', 'wrong');
+                btns[choice].classList.add('wrong');
+                btns[q.answer].classList.add('correct');
+                for (let btn of btns) btn.disabled = true;
+                setTimeout(() => endGame(false), 1500);
+                return;
+            }
+
+            for (let btn of btns) btn.disabled = true;
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 1200);
+        }
+
+        function endGame(cleared) {
+            showScreen('end');
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalLevel').textContent = cleared ? 3 : currentLevel;
+            let msg = '';
+            if (cleared) {
+                document.getElementById('endTitle').textContent = '🏆 恭喜通关！';
+                msg = '数据清洗大师！三关全部通过！';
+            } else if (currentLevel >= 2) {
+                msg = '⭐ 很不错！只差最后一关！';
+            } else if (currentLevel >= 1) {
+                msg = '💪 通过了第一关，继续挑战！';
+            } else {
+                msg = '📚 建议复习数据清洗的基本概念！';
+            }
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

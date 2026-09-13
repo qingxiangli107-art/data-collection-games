@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧩 数据类型消消乐</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .match-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .match-card {
+            aspect-ratio: 1;
+            background: var(--bg);
+            border: 3px solid var(--border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 0.5rem;
+            text-align: center;
+            user-select: none;
+        }
+        .match-card:hover { border-color: var(--primary); transform: scale(1.05); }
+        .match-card.selected { border-color: var(--primary); background: rgba(99,102,241,0.3); box-shadow: 0 0 20px rgba(99,102,241,0.5); }
+        .match-card.matched { border-color: var(--success); background: rgba(16,185,129,0.3); opacity: 0.5; pointer-events: none; }
+        .match-card.wrong { border-color: var(--danger); animation: shake 0.5s; }
+        @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-10px);} 75%{transform:translateX(10px);} }
+        .type-label {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">60</div>
+        <div class="game-header">
+            <h1>🧩 数据类型消消乐</h1>
+            <div class="subtitle">点击两张相同数据类型的卡片进行配对消除</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🧩 数据类型消消乐</h2>
+            <p>屏幕上有16张卡片，每张卡片代表一种数据。你需要找出<b>相同数据类型</b>的两张卡片并点击它们进行配对。</p>
+            <p style="color:var(--text-dim);">数据类型包括：结构化数据、非结构化数据、原始数据、衍生数据</p>
+            <p style="color:var(--accent);">⏱️ 限时60秒，配对越快得分越高！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始游戏</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area" style="position:relative;">
+                <div class="match-grid" id="matchGrid"></div>
+                <div class="type-label" id="typeLabel"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 游戏结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const cards = [
+            { text: 'Excel表格\n销售数据', type: 'structured' },
+            { text: 'MySQL数据库\n订单记录', type: 'structured' },
+            { text: 'CSV文件\n用户列表', type: 'structured' },
+            { text: 'JSON接口\n商品信息', type: 'structured' },
+            { text: '产品图片\nJPEG格式', type: 'unstructured' },
+            { text: '客服录音\nMP3音频', type: 'unstructured' },
+            { text: '用户评价\n文本内容', type: 'unstructured' },
+            { text: '直播视频\nMP4格式', type: 'unstructured' },
+            { text: '原始订单\n未经处理', type: 'raw' },
+            { text: '用户行为\n点击记录', type: 'raw' },
+            { text: '传感器数据\n温度湿度', type: 'raw' },
+            { text: '日志文件\n系统原始', type: 'raw' },
+            { text: '转化率\n计算得出', type: 'derived' },
+            { text: '客单价\n平均值', type: 'derived' },
+            { text: '复购率\n统计分析', type: 'derived' },
+            { text: 'ROI指标\n投资回报', type: 'derived' }
+        ];
+
+        const typeNames = {
+            structured: '结构化数据',
+            unstructured: '非结构化数据',
+            raw: '原始数据',
+            derived: '衍生数据'
+        };
+
+        let score = 0, selected = null, matched = 0, timerObj = null, gameCards = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            score = 0; selected = null; matched = 0;
+            document.getElementById('score').textContent = '0';
+            gameCards = shuffle([...cards]);
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            renderGrid();
+            document.getElementById('timer').textContent = '60';
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(60, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('matchGrid');
+            grid.innerHTML = '';
+            gameCards.forEach((card, i) => {
+                const div = document.createElement('div');
+                div.className = 'match-card';
+                div.textContent = card.text;
+                div.dataset.index = i;
+                div.dataset.type = card.type;
+                div.onclick = () => clickCard(div);
+                grid.appendChild(div);
+            });
+        }
+
+        function clickCard(card) {
+            if (card.classList.contains('matched') || card.classList.contains('selected')) return;
+
+            if (!selected) {
+                selected = card;
+                card.classList.add('selected');
+                document.getElementById('typeLabel').textContent = '已选择，再找一张相同类型的！';
+            } else {
+                if (selected.dataset.type === card.dataset.type && selected !== card) {
+                    // 匹配成功
+                    score += 15;
+                    updateScore(score);
+                    matched += 2;
+                    showFeedback('✓', 'correct');
+                    selected.classList.remove('selected');
+                    selected.classList.add('matched');
+                    card.classList.add('matched');
+                    document.getElementById('typeLabel').textContent = `✅ ${typeNames[card.dataset.type]} 配对成功！`;
+                    if (matched >= gameCards.length) {
+                        if (timerObj) timerObj.stop();
+                        setTimeout(endGame, 500);
+                    }
+                } else {
+                    // 匹配失败
+                    score = Math.max(0, score - 5);
+                    updateScore(score);
+                    showFeedback('✗', 'wrong');
+                    card.classList.add('wrong');
+                    selected.classList.add('wrong');
+                    document.getElementById('typeLabel').textContent = `❌ 不对！${typeNames[selected.dataset.type]} vs ${typeNames[card.dataset.type]}`;
+                    setTimeout(() => {
+                        card.classList.remove('wrong', 'selected');
+                        selected.classList.remove('wrong', 'selected');
+                        selected = null;
+                        document.getElementById('typeLabel').textContent = '';
+                    }, 800);
+                    return;
+                }
+                selected = null;
+            }
+        }
+
+        function endGame() {
+            if (timerObj) timerObj.stop();
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            const allMatched = matched >= gameCards.length;
+            let msg = '';
+            if (allMatched) msg = '🏆 全部配对完成！你对数据类型了如指掌！';
+            else if (score >= 60) msg = '⭐ 表现不错！继续熟悉数据类型！';
+            else msg = '💪 多练习，熟悉不同数据类型的特点！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

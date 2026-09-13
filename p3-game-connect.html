@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 方法连连看</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .connect-area {
+            display: flex;
+            justify-content: space-between;
+            gap: 3rem;
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+        }
+        .connect-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex: 1;
+        }
+        .connect-col h3 {
+            text-align: center;
+            color: var(--primary-light);
+            margin-bottom: 0.5rem;
+        }
+        .connect-item {
+            background: var(--bg);
+            border: 3px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .connect-item:hover { border-color: var(--primary); }
+        .connect-item.selected { border-color: var(--primary); background: rgba(99,102,241,0.3); box-shadow: 0 0 15px rgba(99,102,241,0.5); }
+        .connect-item.matched { border-color: var(--success); background: rgba(16,185,129,0.3); pointer-events: none; }
+        .connect-item.wrong { border-color: var(--danger); animation: shake 0.5s; }
+        #connectCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .progress-text {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">90</div>
+        <div class="game-header">
+            <h1>🔗 方法连连看</h1>
+            <div class="subtitle">点击左侧需求，再点击右侧方法进行配对</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🔗 方法连连看</h2>
+            <p>左侧是<b>数据需求</b>，右侧是<b>采集方法</b>。<br>先点击左侧需求，再点击右侧对应的采集方法进行配对。</p>
+            <p style="color:var(--accent);">配对成功+15分，配对错误-5分！</p>
+            <p style="color:var(--text-dim);">⏱️ 限时90秒，小组合作，一人操作其他人指挥！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始连线</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="connect-area" id="connectArea">
+                    <canvas id="connectCanvas"></canvas>
+                    <div class="connect-col">
+                        <h3>📋 数据需求</h3>
+                        <div id="leftCol"></div>
+                    </div>
+                    <div class="connect-col">
+                        <h3>🔧 采集方法</h3>
+                        <div id="rightCol"></div>
+                    </div>
+                </div>
+                <div class="progress-text">进度：<span id="matched">0</span> / <span id="total">0</span></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 游戏结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const pairs = [
+            { need: '竞品历史价格', method: '爬虫采集' },
+            { need: '用户满意度', method: '问卷调查' },
+            { need: '实时订单数据', method: 'API接口' },
+            { need: '内部销售记录', method: '数据库导出' },
+            { need: '消费者深度需求', method: '用户访谈' },
+            { need: '网站用户行为', method: '埋点采集' },
+            { need: '行业市场规模', method: '第三方数据平台' },
+            { need: '商品评价情感', method: '舆情监控工具' }
+        ];
+
+        let score = 0, selectedLeft = null, matchedCount = 0, timerObj = null;
+        let gamePairs = [], shuffledMethods = [];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            score = 0; selectedLeft = null; matchedCount = 0;
+            document.getElementById('score').textContent = '0';
+            gamePairs = shuffle([...pairs]).slice(0, 6);
+            shuffledMethods = shuffle(gamePairs.map(p => p.method));
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            document.getElementById('timer').textContent = '90';
+            document.getElementById('total').textContent = gamePairs.length;
+            document.getElementById('matched').textContent = '0';
+            renderItems();
+            setupCanvas();
+
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(90, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+        }
+
+        function renderItems() {
+            const leftCol = document.getElementById('leftCol');
+            const rightCol = document.getElementById('rightCol');
+            leftCol.innerHTML = '';
+            rightCol.innerHTML = '';
+
+            gamePairs.forEach((p, i) => {
+                const div = document.createElement('div');
+                div.className = 'connect-item';
+                div.textContent = p.need;
+                div.dataset.index = i;
+                div.onclick = () => clickLeft(div);
+                leftCol.appendChild(div);
+            });
+
+            shuffledMethods.forEach((m, i) => {
+                const div = document.createElement('div');
+                div.className = 'connect-item';
+                div.textContent = m;
+                div.dataset.method = m;
+                div.onclick = () => clickRight(div);
+                rightCol.appendChild(div);
+            });
+        }
+
+        function clickLeft(el) {
+            if (el.classList.contains('matched')) return;
+            document.querySelectorAll('#leftCol .connect-item').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedLeft = el;
+        }
+
+        function clickRight(el) {
+            if (!selectedLeft || el.classList.contains('matched')) return;
+            const idx = parseInt(selectedLeft.dataset.index);
+            const correct = gamePairs[idx].method === el.dataset.method;
+
+            if (correct) {
+                score += 15;
+                updateScore(score);
+                matchedCount++;
+                document.getElementById('matched').textContent = matchedCount;
+                showFeedback('✓', 'correct');
+                selectedLeft.classList.remove('selected');
+                selectedLeft.classList.add('matched');
+                el.classList.add('matched');
+                drawLine(selectedLeft, el, '#10b981');
+                if (matchedCount >= gamePairs.length) {
+                    if (timerObj) timerObj.stop();
+                    setTimeout(endGame, 500);
+                }
+            } else {
+                score = Math.max(0, score - 5);
+                updateScore(score);
+                showFeedback('✗', 'wrong');
+                el.classList.add('wrong');
+                setTimeout(() => el.classList.remove('wrong'), 500);
+            }
+            selectedLeft = null;
+        }
+
+        function setupCanvas() {
+            const canvas = document.getElementById('connectCanvas');
+            const area = document.getElementById('connectArea');
+            canvas.width = area.offsetWidth;
+            canvas.height = area.offsetHeight;
+        }
+
+        function drawLine(el1, el2, color) {
+            const canvas = document.getElementById('connectCanvas');
+            const ctx = canvas.getContext('2d');
+            const area = document.getElementById('connectArea');
+            const r1 = el1.getBoundingClientRect();
+            const r2 = el2.getBoundingClientRect();
+            const ar = area.getBoundingClientRect();
+
+            const x1 = r1.right - ar.left;
+            const y1 = r1.top + r1.height/2 - ar.top;
+            const x2 = r2.left - ar.left;
+            const y2 = r2.top + r2.height/2 - ar.top;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function endGame() {
+            if (timerObj) timerObj.stop();
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (matchedCount >= gamePairs.length) msg = '🏆 全部配对完成！你对采集方法了如指掌！';
+            else if (score >= 50) msg = '⭐ 表现不错！继续熟悉采集方法！';
+            else msg = '💪 多练习，掌握不同数据需求对应的采集方法！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (!document.getElementById('gameScreen').classList.contains('hidden')) {
+                setupCanvas();
+            }
+        });
+    </script>
+</body>
+</html>

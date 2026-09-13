@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ 采集方法一站到底</title>
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">连胜</div>
+            <div class="score-value" id="streak">0</div>
+        </div>
+        <div class="score-board" style="top:6rem;">
+            <div class="score-label">累计得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="game-header">
+            <h1>🛡️ 采集方法一站到底</h1>
+            <div class="subtitle">连续答对得分递增，答错淘汰</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🛡️ 采集方法一站到底</h2>
+            <p>判断题+选择题混合，<b>连续答对</b>得分递增（第1题10分，第2题20分，第3题30分...）。</p>
+            <p style="color:var(--danger);">⚠️ 答错一题即淘汰！看谁能站到最后！</p>
+            <p style="color:var(--text-dim);">适合课堂挑战，轮流上台作答！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">接受挑战</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div style="font-size:1.5rem;color:var(--accent);margin-bottom:1rem;">当前连胜：<span id="streakDisplay">0</span> | 本题分值：<span id="pointDisplay">10</span>分</div>
+                <div class="question-box" id="questionBox"></div>
+                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>💥 挑战失败</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p style="font-size:1.5rem;color:var(--text-dim);">最高连胜：<span id="finalStreak">0</span> 题</p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再次挑战</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const questions = [
+            { q: '爬虫采集属于直接数据采集方法。', type: 'tf', answer: true },
+            { q: '问卷调查适合采集用户的情感态度数据。', type: 'tf', answer: true },
+            { q: 'API接口返回的数据一定是结构化数据。', type: 'tf', answer: false },
+            { q: '第三方数据平台购买的数据属于间接数据。', type: 'tf', answer: true },
+            { q: '数据库导出是最灵活的采集方式，可以获取任何格式的数据。', type: 'tf', answer: false },
+            { q: '以下哪种方法最适合采集竞品历史价格数据？', type: 'choice', options: ['用户问卷', '爬虫采集', '电话访谈', '实地观察'], answer: 1 },
+            { q: '需要了解消费者对新产品的态度，最佳采集方法是？', type: 'choice', options: ['数据库导出', '爬虫采集', '问卷调查', '系统日志'], answer: 2 },
+            { q: '采集实时交易数据，最常用的方法是？', type: 'choice', options: ['API接口', '问卷调查', '文献查阅', '焦点小组'], answer: 0 },
+            { q: '以下哪种情况不适合使用爬虫采集？', type: 'choice', options: ['采集公开的商品信息', '采集需要登录的私人数据', '采集新闻资讯', '采集政府公开数据'], answer: 1 },
+            { q: '采集线下门店客流数据，最适合的方法是？', type: 'choice', options: ['爬虫', 'API', '传感器/客流统计设备', '问卷'], answer: 2 },
+            { q: '日志数据属于什么类型的数据？', type: 'choice', options: ['原始数据', '衍生数据', '结构化数据', '非结构化数据'], answer: 0 },
+            { q: '通过计算得出的"用户活跃度"属于什么数据？', type: 'choice', options: ['原始数据', '衍生数据', '一手数据', '直接数据'], answer: 1 }
+        ];
+
+        let streak = 0, score = 0, gameQuestions = [], currentQ = 0;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            streak = 0; score = 0; currentQ = 0;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('streak').textContent = '0';
+            gameQuestions = shuffle(questions);
+            showScreen('game');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQ >= gameQuestions.length) {
+                endGame(true);
+                return;
+            }
+            const q = gameQuestions[currentQ];
+            const points = (streak + 1) * 10;
+            document.getElementById('streakDisplay').textContent = streak;
+            document.getElementById('pointDisplay').textContent = points;
+            document.getElementById('questionBox').textContent = q.q;
+
+            const opts = document.getElementById('optionsArea');
+            opts.innerHTML = '';
+
+            if (q.type === 'tf') {
+                ['✅ 正确', '❌ 错误'].forEach((text, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = text;
+                    btn.style.fontSize = '1.5rem';
+                    btn.onclick = () => answer(i === 0);
+                    opts.appendChild(btn);
+                });
+            } else {
+                q.options.forEach((opt, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = String.fromCharCode(65 + i) + '. ' + opt;
+                    btn.onclick = () => answer(i);
+                    opts.appendChild(btn);
+                });
+            }
+        }
+
+        function answer(choice) {
+            const q = gameQuestions[currentQ];
+            const correct = choice === q.answer;
+            const btns = document.getElementById('optionsArea').children;
+
+            if (correct) {
+                streak++;
+                score += streak * 10;
+                document.getElementById('streak').textContent = streak;
+                updateScore(score);
+                showFeedback('✓', 'correct');
+                if (q.type === 'tf') {
+                    btns[choice ? 1 : 0].classList.add('correct');
+                } else {
+                    btns[choice].classList.add('correct');
+                }
+            } else {
+                showFeedback('💥', 'wrong');
+                if (q.type === 'tf') {
+                    btns[choice ? 1 : 0].classList.add('wrong');
+                    btns[q.answer ? 1 : 0].classList.add('correct');
+                } else {
+                    btns[choice].classList.add('wrong');
+                    btns[q.answer].classList.add('correct');
+                }
+                for (let btn of btns) btn.disabled = true;
+                setTimeout(() => endGame(false), 1500);
+                return;
+            }
+
+            for (let btn of btns) btn.disabled = true;
+            setTimeout(() => {
+                currentQ++;
+                showQuestion();
+            }, 1200);
+        }
+
+        function endGame(cleared) {
+            showScreen('end');
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalStreak').textContent = streak;
+            let msg = '';
+            if (cleared) msg = '🏆 通关！你站到了最后！采集方法专家！';
+            else if (streak >= 8) msg = '🔥 惊人的连胜！你是采集方法达人！';
+            else if (streak >= 5) msg = '⭐ 不错的成绩！继续挑战更高连胜！';
+            else if (streak >= 3) msg = '💪 基础扎实，再来一次突破自己！';
+            else msg = '📚 建议复习采集方法的知识点哦！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

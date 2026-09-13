@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎣 数据抓取节奏大师</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .catch-area {
+            width: 100%;
+            max-width: 900px;
+            height: 400px;
+            background: linear-gradient(180deg, var(--bg) 0%, var(--bg-card) 100%);
+            border: 3px solid var(--border);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        .data-ball {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .data-ball:hover { transform: scale(1.2); }
+        .data-ball.good {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 2px solid #34d399;
+        }
+        .data-ball.bad {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 2px solid #f87171;
+        }
+        .data-ball.bonus {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 2px solid #fbbf24;
+            animation: pulse 0.5s infinite;
+        }
+        .combo-display {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .catch-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary);
+        }
+        .zone-label {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">60</div>
+        <div class="game-header">
+            <h1>🎣 数据抓取节奏大师</h1>
+            <div class="subtitle">点击捕获飘过的数据球，避开脏数据！</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🎣 数据抓取节奏大师</h2>
+            <p>数据球会从左侧飘入屏幕，你需要<b>点击捕获</b>它们。</p>
+            <div style="background:var(--bg);border-radius:12px;padding:1rem;margin:1rem 0;text-align:left;max-width:500px;">
+                <p style="margin:0.3rem 0;">🟢 <b>绿色球</b> = 有效数据 (+10分)</p>
+                <p style="margin:0.3rem 0;">🔴 <b>红色球</b> = 脏数据 (-5分，不要点！)</p>
+                <p style="margin:0.3rem 0;">🟡 <b>金色球</b> = 高价值数据 (+30分)</p>
+                <p style="margin:0.3rem 0;">🔥 <b>连击</b> = 连续捕获有额外加分！</p>
+            </div>
+            <p style="color:var(--accent);">⏱️ 限时60秒，看你能捕获多少有效数据！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始抓取</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="catch-area" id="catchArea">
+                    <div class="combo-display" id="comboDisplay"></div>
+                    <div class="catch-line"></div>
+                    <div class="zone-label">点击数据球进行捕获</div>
+                </div>
+                <div style="margin-top:1rem;display:flex;gap:2rem;justify-content:center;font-size:1.1rem;">
+                    <span style="color:var(--success);">✅ 捕获: <span id="caught">0</span></span>
+                    <span style="color:var(--danger);">❌ 脏数据: <span id="missed">0</span></span>
+                    <span style="color:var(--accent);">🔥 最高连击: <span id="maxCombo">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 抓取结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p style="font-size:1.2rem;color:var(--text-dim);">
+                捕获 <span id="finalCaught">0</span> 个 | 脏数据 <span id="finalMissed">0</span> 个 | 最高连击 <span id="finalMaxCombo">0</span>
+            </p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        let score = 0, caught = 0, missed = 0, combo = 0, maxCombo = 0;
+        let gameActive = false, timerObj = null, spawnInterval = null;
+        const ballTypes = [
+            { type: 'good', emoji: '📊', score: 10, chance: 0.6 },
+            { type: 'bad', emoji: '💩', score: -5, chance: 0.3 },
+            { type: 'bonus', emoji: '💎', score: 30, chance: 0.1 }
+        ];
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            score = 0; caught = 0; missed = 0; combo = 0; maxCombo = 0;
+            document.getElementById('score').textContent = '0';
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            document.getElementById('timer').textContent = '60';
+            document.getElementById('caught').textContent = '0';
+            document.getElementById('missed').textContent = '0';
+            document.getElementById('maxCombo').textContent = '0';
+            document.getElementById('comboDisplay').textContent = '';
+            gameActive = true;
+
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(60, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+
+            spawnInterval = setInterval(spawnBall, 1500);
+        }
+
+        function spawnBall() {
+            if (!gameActive) return;
+            const area = document.getElementById('catchArea');
+            const ball = document.createElement('div');
+
+            const rand = Math.random();
+            let bt = ballTypes[0];
+            let cum = 0;
+            for (const b of ballTypes) {
+                cum += b.chance;
+                if (rand <= cum) { bt = b; break; }
+            }
+
+            ball.className = `data-ball ${bt.type}`;
+            ball.textContent = bt.emoji;
+            ball.dataset.type = bt.type;
+            ball.dataset.score = bt.score;
+
+            const top = Math.random() * (area.offsetHeight - 100) + 20;
+            ball.style.top = top + 'px';
+            ball.style.left = '-60px';
+
+            const duration = 4 + Math.random() * 3;
+            ball.style.transition = `left ${duration}s linear`;
+
+            ball.onclick = (e) => {
+                e.stopPropagation();
+                catchBall(ball);
+            };
+
+            area.appendChild(ball);
+            requestAnimationFrame(() => {
+                ball.style.left = (area.offsetWidth + 60) + 'px';
+            });
+
+            setTimeout(() => {
+                if (ball.parentNode) {
+                    ball.remove();
+                    if (gameActive && ball.dataset.type === 'good') {
+                        combo = 0;
+                        document.getElementById('comboDisplay').textContent = '';
+                    }
+                }
+            }, duration * 1000);
+        }
+
+        function catchBall(ball) {
+            if (!gameActive) return;
+            const type = ball.dataset.type;
+            const s = parseInt(ball.dataset.score);
+
+            if (type === 'good' || type === 'bonus') {
+                caught++;
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                const bonus = combo > 1 ? Math.floor(combo * 0.5) : 0;
+                score += s + bonus;
+                document.getElementById('caught').textContent = caught;
+                document.getElementById('maxCombo').textContent = maxCombo;
+                if (combo > 1) {
+                    document.getElementById('comboDisplay').textContent = `🔥 ${combo}连击! +${bonus}bonus`;
+                }
+                showFeedback('+' + (s + bonus), 'correct');
+            } else {
+                missed++;
+                combo = 0;
+                score = Math.max(0, score + s);
+                document.getElementById('missed').textContent = missed;
+                document.getElementById('comboDisplay').textContent = '';
+                showFeedback('💩', 'wrong');
+            }
+
+            updateScore(score);
+            ball.remove();
+        }
+
+        function endGame() {
+            gameActive = false;
+            if (timerObj) timerObj.stop();
+            if (spawnInterval) clearInterval(spawnInterval);
+            document.querySelectorAll('.data-ball').forEach(b => b.remove());
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalCaught').textContent = caught;
+            document.getElementById('finalMissed').textContent = missed;
+            document.getElementById('finalMaxCombo').textContent = maxCombo;
+            let msg = '';
+            if (score >= 200) msg = '🏆 数据采集大师！反应神速，连击不断！';
+            else if (score >= 100) msg = '⭐ 不错的成绩！继续提升反应速度！';
+            else msg = '💪 多练习，学会区分有效数据和脏数据！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>

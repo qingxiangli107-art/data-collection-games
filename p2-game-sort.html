@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 场景分类大作战</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .sort-area {
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+            height: 500px;
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .falling-card {
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            font-size: 1.3rem;
+            text-align: center;
+            min-width: 300px;
+            animation: fall 8s linear forwards;
+            z-index: 5;
+        }
+        @keyframes fall {
+            from { top: -80px; }
+            to { top: 110%; }
+        }
+        .bins {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem;
+            gap: 0.5rem;
+        }
+        .bin {
+            flex: 1;
+            background: var(--bg);
+            border: 3px solid var(--border);
+            border-radius: 16px 16px 0 0;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .bin.active {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.2);
+            transform: scale(1.05);
+        }
+        .bin-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 0.3rem;
+        }
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: var(--accent);
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">60</div>
+        <div class="game-header">
+            <h1>🎯 场景分类大作战</h1>
+            <div class="subtitle">按数字键1-5将场景卡片投入正确业务域篮子</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🎯 场景分类大作战</h2>
+            <p>场景描述卡片会从上方掉落，下方有5个业务域篮子。<br><b>在卡片掉落到底部前</b>，按键盘数字键 <b>1-5</b> 将其投入对应篮子。</p>
+            <div style="background:var(--bg);border-radius:12px;padding:1rem;margin:1rem 0;text-align:left;max-width:500px;">
+                <p style="margin:0.3rem 0;"><b>1</b> = 营销域</p>
+                <p style="margin:0.3rem 0;"><b>2</b> = 商品域</p>
+                <p style="margin:0.3rem 0;"><b>3</b> = 渠道域</p>
+                <p style="margin:0.3rem 0;"><b>4</b> = 物流域</p>
+                <p style="margin:0.3rem 0;"><b>5</b> = 服务域</p>
+            </div>
+            <p style="color:var(--accent);">投对+10分，投错-5分，错过-3分！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始游戏</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="sort-area" id="sortArea">
+                    <div class="instruction" id="instruction">准备开始...</div>
+                    <div class="bins" id="bins">
+                        <div class="bin" data-bin="0"><div>📣</div><div>营销域</div><div class="bin-label">按 1</div></div>
+                        <div class="bin" data-bin="1"><div>📦</div><div>商品域</div><div class="bin-label">按 2</div></div>
+                        <div class="bin" data-bin="2"><div>🌐</div><div>渠道域</div><div class="bin-label">按 3</div></div>
+                        <div class="bin" data-bin="3"><div>🚚</div><div>物流域</div><div class="bin-label">按 4</div></div>
+                        <div class="bin" data-bin="4"><div>🎧</div><div>服务域</div><div class="bin-label">按 5</div></div>
+                    </div>
+                </div>
+                <div style="margin-top:1rem;font-size:1.1rem;color:var(--text-dim);">
+                    剩余卡片：<span id="remaining">15</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 游戏结束</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const scenarios = [
+            { text: '分析直通车推广效果', domain: 0 },
+            { text: '优化商品标题关键词', domain: 1 },
+            { text: '评估抖音直播带货数据', domain: 2 },
+            { text: '监控包裹配送时效', domain: 3 },
+            { text: '处理客户退换货申请', domain: 4 },
+            { text: '计算促销活动ROI', domain: 0 },
+            { text: '分析商品SKU动销率', domain: 1 },
+            { text: '比较各渠道转化率', domain: 2 },
+            { text: '优化仓库拣货路径', domain: 3 },
+            { text: '统计客服响应时长', domain: 4 },
+            { text: '制定会员营销策略', domain: 0 },
+            { text: '规划商品上新节奏', domain: 1 },
+            { text: '分析私域流量运营', domain: 2 },
+            { text: '降低物流破损率', domain: 3 },
+            { text: '提升售后服务满意度', domain: 4 }
+        ];
+
+        let score = 0, currentCard = null, cardIndex = 0, gameScenarios = [];
+        let timerObj = null, spawnInterval = null, gameActive = false;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            score = 0; cardIndex = 0; gameActive = true;
+            document.getElementById('score').textContent = '0';
+            gameScenarios = shuffle([...scenarios]);
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            document.getElementById('timer').textContent = '60';
+            document.getElementById('remaining').textContent = gameScenarios.length;
+            document.getElementById('instruction').textContent = '准备开始...';
+
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(60, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, endGame);
+
+            // 3秒后开始生成卡片
+            setTimeout(() => {
+                document.getElementById('instruction').style.display = 'none';
+                spawnCard();
+                spawnInterval = setInterval(spawnCard, 4000);
+            }, 2000);
+        }
+
+        function spawnCard() {
+            if (!gameActive || cardIndex >= gameScenarios.length) {
+                clearInterval(spawnInterval);
+                return;
+            }
+
+            // 移除旧卡片
+            const old = document.querySelector('.falling-card');
+            if (old) {
+                if (!old.dataset.scored) {
+                    score = Math.max(0, score - 3);
+                    updateScore(score);
+                    showFeedback('💨', 'wrong');
+                }
+                old.remove();
+            }
+
+            const s = gameScenarios[cardIndex];
+            const card = document.createElement('div');
+            card.className = 'falling-card';
+            card.textContent = s.text;
+            card.dataset.domain = s.domain;
+            card.dataset.index = cardIndex;
+            document.getElementById('sortArea').appendChild(card);
+            currentCard = card;
+            cardIndex++;
+            document.getElementById('remaining').textContent = gameScenarios.length - cardIndex;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive || !currentCard) return;
+            const key = parseInt(e.key);
+            if (key >= 1 && key <= 5) {
+                const correctDomain = parseInt(currentCard.dataset.domain);
+                const bins = document.querySelectorAll('.bin');
+                bins.forEach(b => b.classList.remove('active'));
+                bins[key - 1].classList.add('active');
+                setTimeout(() => bins[key - 1].classList.remove('active'), 300);
+
+                if (key - 1 === correctDomain) {
+                    score += 10;
+                    updateScore(score);
+                    showFeedback('✓', 'correct');
+                } else {
+                    score = Math.max(0, score - 5);
+                    updateScore(score);
+                    showFeedback('✗', 'wrong');
+                }
+                currentCard.dataset.scored = 'true';
+                currentCard.remove();
+                currentCard = null;
+            }
+        });
+
+        function endGame() {
+            gameActive = false;
+            if (timerObj) timerObj.stop();
+            if (spawnInterval) clearInterval(spawnInterval);
+            const old = document.querySelector('.falling-card');
+            if (old) old.remove();
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 100) msg = '🏆 业务域分类大师！反应神速！';
+            else if (score >= 60) msg = '⭐ 表现不错！继续熟悉各业务域！';
+            else msg = '💪 多练习，熟悉不同业务场景的特点！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>
