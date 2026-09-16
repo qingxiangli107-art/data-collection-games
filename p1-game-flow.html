@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 数据采集流程接力</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .mission-box {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.15));
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .mission-label {
+            font-size: 1rem;
+            color: var(--primary-light);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .mission-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .progress-track {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1.5rem 0;
+            padding: 0 1rem;
+            position: relative;
+        }
+        .progress-track::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 2rem;
+            right: 2rem;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            z-index: 0;
+        }
+        .progress-fill {
+            position: absolute;
+            top: 50%;
+            left: 2rem;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+            z-index: 0;
+            transition: width 0.5s;
+        }
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 3px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .step-dot.completed {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+        .step-dot.current {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(99,102,241,0.5);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .step-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .step-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: center;
+            width: 60px;
+            line-height: 1.3;
+        }
+        .question-area {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .option-btn-large {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .option-btn-large:hover:not(:disabled) {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99,102,241,0.2);
+        }
+        .option-btn-large.correct {
+            background: rgba(16,185,129,0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .option-btn-large.wrong {
+            background: rgba(239,68,68,0.2);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .option-btn-large:disabled {
+            cursor: default;
+        }
+        .explain-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            min-height: 3rem;
+        }
+        .step-detail {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.3rem;
+        }
+        @media (max-width: 768px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .step-label { font-size: 0.6rem; width: 45px; }
+            .step-dot { width: 32px; height: 32px; font-size: 0.7rem; }
+            .mission-text { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">20</div>
+        <div class="game-header">
+            <h1>🔄 数据采集流程接力</h1>
+            <div class="subtitle">按正确顺序完成数据采集与处理的7个步骤</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🔄 数据采集流程接力</h2>
+            <p>你会接到一个<b>数据采集任务</b>，需要按照正确的流程，从第1步到第7步依次做出选择。</p>
+            <p>课程中教授的7步流程：<b>明确目标 → 搭建指标 → 选择渠道 → 选择方法 → 执行采集 → 分类处理 → 整理结果</b></p>
+            <p>每步有4个选项，选对得分，选错会显示正确步骤解析！</p>
+            <p style="color:var(--text-dim);">适合课堂全班接力，每人完成一步！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始接力</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="mission-box">
+                    <div class="mission-label">📋 当前任务</div>
+                    <div class="mission-text" id="missionText"></div>
+                </div>
+
+                <div class="progress-track" id="progressTrack">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                    <div class="step-dot current" id="dot1">1</div>
+                    <div class="step-dot" id="dot2">2</div>
+                    <div class="step-dot" id="dot3">3</div>
+                    <div class="step-dot" id="dot4">4</div>
+                    <div class="step-dot" id="dot5">5</div>
+                    <div class="step-dot" id="dot6">6</div>
+                    <div class="step-dot" id="dot7">7</div>
+                </div>
+                <div class="step-labels">
+                    <div class="step-label">明确目标</div>
+                    <div class="step-label">搭建指标</div>
+                    <div class="step-label">选择渠道</div>
+                    <div class="step-label">选择方法</div>
+                    <div class="step-label">执行采集</div>
+                    <div class="step-label">分类处理</div>
+                    <div class="step-label">整理结果</div>
+                </div>
+
+                <div class="question-area">
+                    <div class="question-text" id="questionText"></div>
+                    <div class="options-grid" id="optionsGrid"></div>
+                </div>
+                <div class="explain-box" id="explainBox"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 流程接力完成</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const missions = [
+            {
+                title: '公司要求你分析竞品在天猫上的价格策略，为即将到来的双11大促做准备。',
+                steps: [
+                    { question: '接到任务后，第一步应该做什么？', options: ['直接打开八爪鱼开始采集', '明确采集目标和需要的数据指标', '联系竞品店铺索取数据', '先写一份Python爬虫脚本'], correct: 1, explain: '<span class="step-detail">第1步：明确采集目标</span>。任何数据采集前都必须先明确目标——要采集什么数据、用来解决什么问题。盲目采集会浪费资源。' },
+                    { question: '目标明确后，第二步应该做什么？', options: ['搭建数据指标体系，确定需要哪些数据字段', '立刻选择用八爪鱼还是Python', '直接访问竞品店铺页面', '先向领导汇报方案'], correct: 0, explain: '<span class="step-detail">第2步：搭建数据指标体系</span>。需要先确定需要哪些具体指标，如"商品标题、原价、促销价、销量、评价数"等，形成指标体系。' },
+                    { question: '指标体系搭建好后，第三步应该做什么？', options: ['直接开始写代码采集', '选择数据采集的渠道和来源', '先购买竞品的数据服务', '等待领导审批'], correct: 1, explain: '<span class="step-detail">第3步：选择数据采集渠道</span>。需要确定从哪里获取数据——竞品店铺页面、行业报告、第三方数据平台等。' },
+                    { question: '确定了数据来源后，第四步应该做什么？', options: ['立即开始大规模采集', '评估法律风险后放弃', '选择具体的采集方法和工具', '先对数据进行清洗'], correct: 2, explain: '<span class="step-detail">第4步：选择数据采集方法</span>。根据数据来源选择合适的采集方式，如用八爪鱼可视化采集、Python爬虫、API接口等。' },
+                    { question: '方法确定后，第五步应该做什么？', options: ['对采集到的数据进行可视化', '执行数据采集，获取原始数据', '先写数据分析报告', '将数据导入数据库'], correct: 1, explain: '<span class="step-detail">第5步：执行数据采集</span>。使用选定的方法和工具，实际执行采集操作，获取原始数据文件。' },
+                    { question: '原始数据采集完成后，第六步应该做什么？', options: ['直接提交给领导', '对数据进行分类处理（清洗、去重、格式统一）', '立即制作PPT汇报', '删除看起来异常的数据'], correct: 1, explain: '<span class="step-detail">第6步：分类处理数据</span>。原始数据通常存在缺失、重复、格式不统一等问题，需要进行清洗、去重、转换等处理。' },
+                    { question: '数据清洗完成后，最后一步应该做什么？', options: ['整理分析结果，形成可读的报告或可视化图表', '把原始数据和清洗数据混在一起保存', '删除原始数据只保留清洗后数据', '直接发邮件给领导'], correct: 0, explain: '<span class="step-detail">第7步：整理分析结果</span>。将处理后的数据进行统计分析，制作图表，形成清晰、有结论的数据报告。' }
+                ]
+            },
+            {
+                title: '老板想了解公司官网的用户访问行为，以便优化网站布局和提升转化率。',
+                steps: [
+                    { question: '接到任务后，第一步应该做什么？', options: ['先安装百度统计代码', '明确采集目标：了解用户访问行为', '直接查看服务器日志', '开始设计新的网站页面'], correct: 1, explain: '<span class="step-detail">第1步：明确采集目标</span>。首先要搞清楚"了解用户访问行为"具体指什么——是访问来源、停留时长、点击热区，还是转化路径？' },
+                    { question: '目标明确后，第二步应该做什么？', options: ['搭建数据指标体系，如UV、PV、跳出率、平均停留时长', '选择使用Excel记录数据', '在网站上投放问卷调查', '联系网站开发团队'], correct: 0, explain: '<span class="step-detail">第2步：搭建数据指标体系</span>。需要确定衡量用户行为的核心指标，如访客数(UV)、页面浏览量(PV)、跳出率、平均停留时长等。' },
+                    { question: '指标体系搭建好后，第三步应该做什么？', options: ['选择数据采集的渠道：网站埋点、日志分析、第三方统计工具', '开始写数据分析报告', '招聘数据分析师', '购买服务器扩容'], correct: 0, explain: '<span class="step-detail">第3步：选择数据采集渠道</span>。网站行为数据可以通过多种渠道获取：网站埋点代码、服务器日志、百度统计等第三方工具。' },
+                    { question: '确定了数据来源后，第四步应该做什么？', options: ['直接开始采集，越多越好', '选择采集方法和工具：百度统计埋点 + 日志分析', '先对所有页面进行A/B测试', '把数据导出到Excel'], correct: 1, explain: '<span class="step-detail">第4步：选择数据采集方法</span>。根据需求选择合适的工具组合，如用百度统计做实时流量分析，用日志分析做深度行为挖掘。' },
+                    { question: '方法确定后，第五步应该做什么？', options: ['对采集到的数据进行清洗', '执行数据采集：部署埋点代码，开始记录数据', '制作数据看板', '召开数据分析会议'], correct: 1, explain: '<span class="step-detail">第5步：执行数据采集</span>。实际部署百度统计代码或配置日志采集系统，开始持续记录用户访问数据。' },
+                    { question: '原始数据采集完成后，第六步应该做什么？', options: ['分类处理数据：清洗无效访问、去重、格式统一、识别机器人流量', '直接把原始数据发给老板', '删除所有跳出率高的数据', '只保留转化用户的数据'], correct: 0, explain: '<span class="step-detail">第6步：分类处理数据</span>。原始日志数据包含大量无效信息，需要清洗掉爬虫访问、过滤内部员工访问、统一时间格式等。' },
+                    { question: '数据清洗完成后，最后一步应该做什么？', options: ['整理分析结果：制作用户行为热力图、转化漏斗、来源分析图表', '停止数据采集以节省成本', '把数据备份到U盘', '开始 redesign 网站'], correct: 0, explain: '<span class="step-detail">第7步：整理分析结果</span>。将处理后的数据转化为直观的图表和报告，如用户行为热力图、转化漏斗、流量来源饼图等。' }
+                ]
+            },
+            {
+                title: '市场部计划推出一款新产品，需要了解目标用户对新功能的接受程度和满意度。',
+                steps: [
+                    { question: '接到任务后，第一步应该做什么？', options: ['直接制作问卷发出去', '明确采集目标：了解用户对新功能的接受度和满意度', '找几个用户打电话问问', '在社交媒体上发投票'], correct: 1, explain: '<span class="step-detail">第1步：明确采集目标</span>。"了解用户满意度"很宽泛，需要明确具体要获取哪些信息——功能认知度、使用意愿、价格敏感度、竞品对比等。' },
+                    { question: '目标明确后，第二步应该做什么？', options: ['搭建数据指标体系：满意度评分、功能认知率、购买意愿比例等', '选择问卷工具（问卷星/腾讯问卷）', '招募用户参加访谈', '设计产品宣传海报'], correct: 0, explain: '<span class="step-detail">第2步：搭建数据指标体系</span>。需要确定可量化的指标，如NPS净推荐值、功能认知率、购买意愿占比、价格接受区间等。' },
+                    { question: '指标体系搭建好后，第三步应该做什么？', options: ['选择数据采集渠道：线上问卷、用户访谈、焦点小组、社交媒体', '开始分析竞品数据', '确定产品上市时间', '联系广告公司'], correct: 0, explain: '<span class="step-detail">第3步：选择数据采集渠道</span>。根据目标用户特征选择合适的触达渠道——线上问卷适合大规模、用户访谈适合深度洞察、社交媒体适合快速反馈。' },
+                    { question: '确定了数据来源后，第四步应该做什么？', options: ['立即向全量用户发送问卷', '选择采集方法：问卷星线上问卷 + 深度用户访谈', '购买第三方用户画像数据', '在抖音上投放广告'], correct: 1, explain: '<span class="step-detail">第4步：选择数据采集方法</span>。定量数据用问卷收集，定性数据用访谈获取。两者结合可以全面评估用户态度。' },
+                    { question: '方法确定后，第五步应该做什么？', options: ['对回收的问卷进行预处理', '执行数据采集：发放问卷、组织访谈、记录数据', '开始撰写调研报告', '制作数据可视化大屏'], correct: 1, explain: '<span class="step-detail">第5步：执行数据采集</span>。通过问卷星发放问卷、组织用户访谈并录音/记录、收集社交媒体反馈等。' },
+                    { question: '原始数据采集完成后，第六步应该做什么？', options: ['分类处理数据：剔除无效问卷、统一评分标准、编码开放性回答', '只保留评分高的回答', '把访谈录音直接发给老板', '删除所有负面评价'], correct: 0, explain: '<span class="step-detail">第6步：分类处理数据</span>。清洗数据——剔除作答时间过短的无效问卷、统一5分制评分、对开放性回答进行归类编码。' },
+                    { question: '数据清洗完成后，最后一步应该做什么？', options: ['整理分析结果：统计满意度分布、制作可视化图表、撰写调研结论', '停止所有用户调研', '根据好评率决定是否上市', '把数据存档不再使用'], correct: 0, explain: '<span class="step-detail">第7步：整理分析结果</span>。汇总分析数据，制作满意度分布图、功能认知对比图，形成有数据支撑的调研报告和产品建议。' }
+                ]
+            }
+        ];
+
+        const stepNames = ['明确目标', '搭建指标', '选择渠道', '选择方法', '执行采集', '分类处理', '整理结果'];
+
+        let currentMission = 0, currentStep = 0, score = 0, timerObj = null;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+
+        function startGame() {
+            currentMission = Math.floor(Math.random() * missions.length);
+            currentStep = 0; score = 0;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('explainBox').innerHTML = '';
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            updateProgress();
+            showStep();
+        }
+
+        function updateProgress() {
+            const pct = (currentStep / 7) * 100;
+            document.getElementById('progressFill').style.width = pct + '%';
+            for (let i = 1; i <= 7; i++) {
+                const dot = document.getElementById('dot' + i);
+                dot.className = 'step-dot';
+                if (i <= currentStep) dot.classList.add('completed');
+                else if (i === currentStep + 1) dot.classList.add('current');
+            }
+        }
+
+        function showStep() {
+            if (currentStep >= 7) {
+                endGame();
+                return;
+            }
+            const mission = missions[currentMission];
+            document.getElementById('missionText').textContent = mission.title;
+            const step = mission.steps[currentStep];
+            document.getElementById('questionText').textContent = '第 ' + (currentStep + 1) + ' 步：' + step.question;
+            document.getElementById('explainBox').innerHTML = '';
+
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+            step.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn-large';
+                btn.textContent = opt;
+                btn.onclick = () => answer(idx);
+                grid.appendChild(btn);
+            });
+
+            document.getElementById('timer').textContent = '20';
+            document.getElementById('timer').classList.remove('warning');
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(20, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 3) document.getElementById('timer').classList.add('warning');
+            }, () => {
+                answer(null);
+            });
+        }
+
+        function answer(choice) {
+            if (timerObj) timerObj.stop();
+            const mission = missions[currentMission];
+            const step = mission.steps[currentStep];
+            const correct = choice === step.correct;
+            const buttons = document.querySelectorAll('.option-btn-large');
+
+            if (correct) {
+                score += 10;
+                updateScore(score);
+                showFeedback('✓ 步骤正确！', 'correct');
+                buttons[step.correct].classList.add('correct');
+            } else {
+                showFeedback('✗ 步骤错误', 'wrong');
+                if (choice !== null && choice >= 0 && choice < buttons.length) {
+                    buttons[choice].classList.add('wrong');
+                }
+                buttons[step.correct].classList.add('correct');
+            }
+
+            document.getElementById('explainBox').innerHTML = step.explain;
+            buttons.forEach(btn => btn.disabled = true);
+
+            setTimeout(() => {
+                currentStep++;
+                updateProgress();
+                showStep();
+            }, 3000);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 65) msg = '🏆 流程大师！你对数据采集与处理的完整流程了如指掌！';
+            else if (score >= 50) msg = '⭐ 表现不错！流程掌握得很扎实！';
+            else if (score >= 30) msg = '💪 还有提升空间，建议多复习7步流程！';
+            else msg = '📚 建议多复习项目一"梳理数据采集与处理流程"的内容哦！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+
+        function showScreen(name) {
+            ['startScreen','gameScreen','endScreen'].forEach(id => {
+                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
+            });
+        }
+    </script>
+</body>
+</html>
