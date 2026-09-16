@@ -3,8 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✅❌ 数据知识真假判断</title>
+    <title>🛠️ 工具场景匹配大师</title>
     <link rel="stylesheet" href="css/games.css">
+    <style>
+        .scene-box {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.15));
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .scene-label {
+            font-size: 1rem;
+            color: var(--primary-light);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .scene-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .option-btn-large {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .option-btn-large:hover:not(:disabled) {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99,102,241,0.2);
+        }
+        .option-btn-large.correct {
+            background: rgba(16,185,129,0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .option-btn-large.wrong {
+            background: rgba(239,68,68,0.2);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .option-btn-large:disabled {
+            cursor: default;
+        }
+        .explain-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            min-height: 3rem;
+        }
+        .explain-box .tool-tag {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.3rem;
+        }
+        @media (max-width: 768px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .scene-text { font-size: 1.2rem; }
+        }
+    </style>
 </head>
 <body>
     <div class="game-container">
@@ -13,15 +94,16 @@
             <div class="score-label">得分</div>
             <div class="score-value" id="score">0</div>
         </div>
-        <div class="timer" id="timer">10</div>
+        <div class="timer" id="timer">15</div>
         <div class="game-header">
-            <h1>✅❌ 数据知识真假判断</h1>
-            <div class="subtitle">判断关于数据的说法是正确还是错误</div>
+            <h1>🛠️ 工具场景匹配大师</h1>
+            <div class="subtitle">根据场景选择最合适的数据采集或处理工具</div>
         </div>
 
         <div id="startScreen" class="screen">
-            <h2>✅❌ 数据知识真假判断</h2>
-            <p>屏幕会显示一个关于数据的陈述，你需要在10秒内判断这个说法是<b>正确</b>还是<b>错误</b>。</p>
+            <h2>🛠️ 工具场景匹配大师</h2>
+            <p>屏幕会显示一个<b>数据采集或处理的实际场景</b>，你需要从4个工具中选择<b>最适合</b>的一个。</p>
+            <p>选错会显示每个工具的适用场景解析，帮你加深理解！</p>
             <p style="color:var(--text-dim);">适合课堂全班抢答，每人轮流作答！</p>
             <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始挑战</button>
         </div>
@@ -29,14 +111,15 @@
         <div id="gameScreen" class="screen hidden" style="background:transparent;">
             <div class="game-area">
                 <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题</div>
-                <div class="question-box" id="questionBox" style="flex-direction:column;gap:1rem;padding:2rem;">
-                    <div id="statement" style="font-size:1.6rem;font-weight:600;line-height:1.6;"></div>
+                <div class="scene-box">
+                    <div class="scene-label">📋 场景任务</div>
+                    <div class="scene-text" id="sceneText"></div>
                 </div>
-                <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;">
-                    <button class="option-btn" id="optTrue" style="min-width:220px;text-align:center;font-size:1.5rem;padding:1.2rem 2rem;">✅ 正确</button>
-                    <button class="option-btn" id="optFalse" style="min-width:220px;text-align:center;font-size:1.5rem;padding:1.2rem 2rem;">❌ 错误</button>
+                <div style="font-size:1.1rem;color:var(--text-dim);margin-bottom:0.5rem;">请选择最适合的工具：</div>
+                <div class="options-grid" id="optionsGrid">
+                    <!-- 动态生成选项 -->
                 </div>
-                <div id="explanation" style="margin-top:1.5rem;font-size:1.1rem;color:var(--text-dim);min-height:3rem;"></div>
+                <div class="explain-box" id="explainBox"></div>
             </div>
         </div>
 
@@ -54,33 +137,91 @@
     <script src="js/games.js"></script>
     <script>
         const questions = [
-            { statement: '数据就是指数字，文字和图像不是数据。', answer: false, explanation: '错误！数据不仅包括数字，还包括文本、图像、音频、视频等各种形式的信息记录。' },
-            { statement: '结构化数据可以用二维表格（行列）来表示。', answer: true, explanation: '正确！结构化数据具有预定义的格式，可以用关系型数据库表格存储，如Excel表格。' },
-            { statement: '社交媒体上的用户评论属于非结构化数据。', answer: true, explanation: '正确！用户评论是自由文本，没有固定格式，属于典型的非结构化数据。' },
-            { statement: '原始数据不需要任何处理就可以直接用于分析。', answer: false, explanation: '错误！原始数据往往存在缺失、错误、重复等问题，需要经过清洗和处理才能用于分析。' },
-            { statement: '缺失值、异常值和重复值都属于"脏数据"。', answer: true, explanation: '正确！脏数据是指存在质量问题、不适合直接使用的数据，包括缺失值、异常值、重复值、格式错误等。' },
-            { statement: '数据和信息是完全相同的概念，可以互换使用。', answer: false, explanation: '错误！数据是原始的、未经处理的记录；信息是经过加工、具有意义和价值的数据。' },
-            { statement: '衍生数据是通过对原始数据进行加工计算得出的数据。', answer: true, explanation: '正确！例如：原始数据是"订单金额"，衍生数据可以是"客单价""销售额汇总"等。' },
-            { statement: '数据采集只需要考虑能不能拿到数据，不需要考虑合法性。', answer: false, explanation: '错误！数据采集必须遵守法律法规和平台规则，未经授权爬取数据可能涉及法律风险。' },
-            { statement: 'JSON格式的数据属于半结构化数据。', answer: true, explanation: '正确！JSON有标签和层级结构，但不像数据库表那样严格固定，属于半结构化数据。' },
-            { statement: '数据量越大，数据分析的结果一定越准确。', answer: false, explanation: '错误！数据质量比数量更重要。如果数据有严重质量问题，数据量再大也可能得出错误结论。' },
-            { statement: '数据生命周期包括：采集、清洗、存储、分析、应用、归档/销毁。', answer: true, explanation: '正确！数据从产生到最终处置会经历完整的生命周期，每个阶段都需要科学管理。' },
-            { statement: 'CSV文件和Excel文件都可以用来存储结构化数据。', answer: true, explanation: '正确！CSV是纯文本格式，Excel是二进制格式，两者都常用于存储结构化表格数据。' }
+            {
+                scene: '需要从淘宝、京东等电商平台，批量采集1000个商品的标题、价格和销量数据。',
+                options: ['八爪鱼采集器', 'Excel', '问卷星', '百度统计'],
+                answer: 0,
+                explain: '<span class="tool-tag">八爪鱼采集器</span>是可视化网页数据采集工具，适合批量采集电商平台的商品信息，无需编程。<br><span class="tool-tag" style="background:var(--text-dim);">Excel</span>适合数据处理而非批量采集；<span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于调研；<span class="tool-tag" style="background:var(--text-dim);">百度统计</span>用于分析网站流量。'
+            },
+            {
+                scene: '公司数据库中有10万条订单记录，需要快速筛选出2024年销售额TOP100的客户名单。',
+                options: ['数据库查询(SQL)', '八爪鱼采集器', '问卷星', 'Power BI'],
+                answer: 0,
+                explain: '<span class="tool-tag">数据库查询(SQL)</span>擅长从海量结构化数据中快速筛选、排序和聚合，是处理大规模数据的首选。<br><span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>用于外部网页采集；<span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于调研；<span class="tool-tag" style="background:var(--text-dim);">Power BI</span>侧重可视化展示而非数据筛选。'
+            },
+            {
+                scene: '采集到的原始销售数据存在重复记录、缺失值和格式不统一的问题，需要进行清洗处理。',
+                options: ['Python爬虫', 'Excel', '百度统计', 'API接口'],
+                answer: 1,
+                explain: '<span class="tool-tag">Excel</span>是入门级的数据处理工具，提供去重、查找替换、数据验证等清洗功能，适合中小规模数据。<br><span class="tool-tag" style="background:var(--text-dim);">Python爬虫</span>用于数据采集；<span class="tool-tag" style="background:var(--text-dim);">百度统计</span>用于网站分析；<span class="tool-tag" style="background:var(--text-dim);">API接口</span>用于数据获取。'
+            },
+            {
+                scene: '老板希望看到各区域销售额的对比图表、趋势分析以及可交互的数据仪表盘。',
+                options: ['八爪鱼采集器', 'Power BI', '问卷星', '数据库查询(SQL)'],
+                answer: 1,
+                explain: '<span class="tool-tag">Power BI</span>是专业的数据可视化与商业智能工具，擅长制作交互式图表和仪表盘。<br><span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>用于采集；<span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于调研；<span class="tool-tag" style="background:var(--text-dim);">SQL</span>用于查询数据而非可视化展示。'
+            },
+            {
+                scene: '想查看自己淘宝店铺每天的访客数、支付转化率、客单价等电商核心运营指标。',
+                options: ['Python爬虫', '生意参谋', 'Excel', '百度统计'],
+                answer: 1,
+                explain: '<span class="tool-tag">生意参谋</span>是阿里巴巴官方提供的电商数据分析平台，专门用于分析淘宝/天猫店铺运营数据。<br><span class="tool-tag" style="background:var(--text-dim);">Python爬虫</span>可能违反平台规则；<span class="tool-tag" style="background:var(--text-dim);">Excel</span>无法直接获取；<span class="tool-tag" style="background:var(--text-dim);">百度统计</span>用于分析网站流量而非电商平台。'
+            },
+            {
+                scene: '需要编写程序，每天自动从多个新闻网站抓取最新的行业资讯标题和发布时间。',
+                options: ['八爪鱼采集器', '问卷星', 'Python爬虫', 'ETL工具'],
+                answer: 2,
+                explain: '<span class="tool-tag">Python爬虫</span>通过Requests/BeautifulSoup等库可以灵活编写自动化采集程序，适合定时批量抓取。<br><span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>适合配置化采集；<span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于调研；<span class="tool-tag" style="background:var(--text-dim);">ETL工具</span>用于数据整合而非采集。'
+            },
+            {
+                scene: '想了解访问公司官网的用户来源渠道、平均停留时长、页面跳出率等信息。',
+                options: ['生意参谋', '百度统计', '八爪鱼采集器', '问卷星'],
+                answer: 1,
+                explain: '<span class="tool-tag">百度统计</span>是网站流量分析工具，通过在网页嵌入代码，可追踪访客来源、行为路径、停留时长等。<br><span class="tool-tag" style="background:var(--text-dim);">生意参谋</span>针对电商平台；<span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>采集网页内容而非流量；<span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于主动调研。'
+            },
+            {
+                scene: '电商平台需要对接第三方物流系统，实时获取每个订单的物流跟踪状态信息。',
+                options: ['API接口', 'Python爬虫', 'Excel', '传感器采集'],
+                answer: 0,
+                explain: '<span class="tool-tag">API接口</span>是官方提供的数据对接方式，通过调用物流平台的开放接口可以合法、稳定地获取实时数据。<br><span class="tool-tag" style="background:var(--text-dim);">Python爬虫</span>是非官方方式，不稳定且可能违规；<span class="tool-tag" style="background:var(--text-dim);">Excel</span>和<span class="tool-tag" style="background:var(--text-dim);">传感器</span>不适用此场景。'
+            },
+            {
+                scene: '公司计划推出新产品，想了解目标消费者对产品功能的需求和满意度。',
+                options: ['八爪鱼采集器', '数据库查询(SQL)', '问卷星', 'Power BI'],
+                answer: 2,
+                explain: '<span class="tool-tag">问卷星</span>是在线问卷调查工具，适合主动收集用户的主观意见、需求和满意度反馈。<br><span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>采集已有公开数据；<span class="tool-tag" style="background:var(--text-dim);">SQL</span>查询已有数据；<span class="tool-tag" style="background:var(--text-dim);">Power BI</span>用于分析展示。'
+            },
+            {
+                scene: '公司有多套业务系统（ERP、CRM、电商平台），需要定期将各系统数据整合到统一的数据仓库中。',
+                options: ['Excel', 'Power BI', 'ETL工具', 'Python爬虫'],
+                answer: 2,
+                explain: '<span class="tool-tag">ETL工具</span>（Extract-Transform-Load）专门用于从不同数据源抽取、转换、加载数据到数据仓库，是数据整合的标准方案。<br><span class="tool-tag" style="background:var(--text-dim);">Excel</span>无法处理多系统大规模数据；<span class="tool-tag" style="background:var(--text-dim);">Power BI</span>用于可视化；<span class="tool-tag" style="background:var(--text-dim);">Python爬虫</span>用于外部网页采集。'
+            },
+            {
+                scene: '工厂生产线上的温度传感器、湿度传感器需要实时采集设备运行的环境数据。',
+                options: ['问卷星', '传感器采集系统', '八爪鱼采集器', 'API接口'],
+                answer: 1,
+                explain: '<span class="tool-tag">传感器采集系统</span>通过物联网技术直接读取传感器数据，是工业环境数据采集的标准方式。<br><span class="tool-tag" style="background:var(--text-dim);">问卷星</span>用于主观调研；<span class="tool-tag" style="background:var(--text-dim);">八爪鱼</span>用于网页；<span class="tool-tag" style="background:var(--text-dim);">API</span>用于软件系统对接。'
+            },
+            {
+                scene: '课堂上老师需要快速发起一个随堂测验，收集全班学生的答题结果并自动统计。',
+                options: ['问卷星', 'MySQL数据库', 'Python爬虫', '生意参谋'],
+                answer: 0,
+                explain: '<span class="tool-tag">问卷星</span>支持快速创建问卷/测验，学生扫码即可答题，自动统计结果，非常适合课堂互动。<br><span class="tool-tag" style="background:var(--text-dim);">MySQL</span>需要开发；<span class="tool-tag" style="background:var(--text-dim);">Python爬虫</span>不相关；<span class="tool-tag" style="background:var(--text-dim);">生意参谋</span>是电商工具。'
+            }
         ];
 
         let currentQ = 0, score = 0, timerObj = null, gameQuestions = [];
 
         document.getElementById('startBtn').onclick = startGame;
         document.getElementById('restartBtn').onclick = startGame;
-        document.getElementById('optTrue').onclick = () => answer(true);
-        document.getElementById('optFalse').onclick = () => answer(false);
 
         function startGame() {
             currentQ = 0; score = 0;
             gameQuestions = shuffle(questions).slice(0, 10);
             document.getElementById('score').textContent = '0';
             document.getElementById('qTotal').textContent = gameQuestions.length;
-            document.getElementById('explanation').textContent = '';
+            document.getElementById('explainBox').innerHTML = '';
             showScreen('game');
             document.getElementById('timer').style.display = 'flex';
             showQuestion();
@@ -93,18 +234,23 @@
             }
             const q = gameQuestions[currentQ];
             document.getElementById('qNum').textContent = currentQ + 1;
-            document.getElementById('statement').textContent = q.statement;
-            document.getElementById('explanation').textContent = '';
+            document.getElementById('sceneText').textContent = q.scene;
+            document.getElementById('explainBox').innerHTML = '';
 
-            ['optTrue','optFalse'].forEach(id => {
-                document.getElementById(id).className = 'option-btn';
-                document.getElementById(id).disabled = false;
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn-large';
+                btn.textContent = opt;
+                btn.onclick = () => answer(idx);
+                grid.appendChild(btn);
             });
 
-            document.getElementById('timer').textContent = '10';
+            document.getElementById('timer').textContent = '15';
             document.getElementById('timer').classList.remove('warning');
             if (timerObj) timerObj.stop();
-            timerObj = startTimer(10, (r) => {
+            timerObj = startTimer(15, (r) => {
                 document.getElementById('timer').textContent = r;
                 if (r <= 3) document.getElementById('timer').classList.add('warning');
             }, () => {
@@ -116,28 +262,28 @@
             if (timerObj) timerObj.stop();
             const q = gameQuestions[currentQ];
             const correct = choice === q.answer;
+            const buttons = document.querySelectorAll('.option-btn-large');
 
             if (correct) {
                 score += 10;
                 updateScore(score);
-                showFeedback('✓', 'correct');
-                document.getElementById(choice ? 'optTrue' : 'optFalse').classList.add('correct');
+                showFeedback('✓ 匹配正确！', 'correct');
+                buttons[q.answer].classList.add('correct');
             } else {
-                showFeedback('✗', 'wrong');
-                if (choice !== null) {
-                    document.getElementById(choice ? 'optTrue' : 'optFalse').classList.add('wrong');
+                showFeedback('✗ 匹配错误', 'wrong');
+                if (choice !== null && choice >= 0 && choice < buttons.length) {
+                    buttons[choice].classList.add('wrong');
                 }
-                document.getElementById(q.answer ? 'optTrue' : 'optFalse').classList.add('correct');
+                buttons[q.answer].classList.add('correct');
             }
 
-            document.getElementById('explanation').innerHTML = '<span style="color:' + (correct ? 'var(--success)' : 'var(--danger)') + ';">' + q.explanation + '</span>';
-
-            ['optTrue','optFalse'].forEach(id => document.getElementById(id).disabled = true);
+            document.getElementById('explainBox').innerHTML = q.explain;
+            buttons.forEach(btn => btn.disabled = true);
 
             setTimeout(() => {
                 currentQ++;
                 showQuestion();
-            }, 2500);
+            }, 3500);
         }
 
         function endGame() {
@@ -145,10 +291,10 @@
             document.getElementById('timer').style.display = 'none';
             document.getElementById('finalScore').textContent = score;
             let msg = '';
-            if (score >= 90) msg = '🏆 数据知识达人！你对数据基础概念了如指掌！';
-            else if (score >= 70) msg = '⭐ 表现不错！数据基础很扎实！';
-            else if (score >= 50) msg = '💪 还有提升空间，建议多复习数据基础概念！';
-            else msg = '📚 建议多复习项目一"认识数据"的内容哦！';
+            if (score >= 90) msg = '🏆 工具大师！你对各类数据采集与处理工具了如指掌！';
+            else if (score >= 70) msg = '⭐ 表现不错！工具选型能力很扎实！';
+            else if (score >= 50) msg = '💪 还有提升空间，建议多熟悉各工具的适用场景！';
+            else msg = '📚 建议多复习项目一"熟悉数据采集与处理工具"的内容哦！';
             document.getElementById('endMessage').textContent = msg;
         }
 
