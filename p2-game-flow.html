@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔀 业务流程排排站</title>
+    <link rel="stylesheet" href="css/games.css">
+    <style>
+        .flow-title {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.15));
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 1.3rem 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .flow-title .label { font-size: 0.95rem; color: var(--primary-light); font-weight: 600; margin-bottom: 0.4rem; }
+        .flow-title .name { font-size: 1.4rem; font-weight: 700; }
+        .slots {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            margin-bottom: 1.5rem;
+        }
+        .slot {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--bg-card);
+            border: 2px dashed var(--border);
+            border-radius: 14px;
+            padding: 0.7rem 1rem;
+            min-height: 58px;
+            transition: all 0.3s;
+        }
+        .slot.filled { border-style: solid; border-color: var(--primary); }
+        .slot .slot-num {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 700; color: var(--text-dim);
+            flex-shrink: 0;
+        }
+        .slot.filled .slot-num { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .slot .slot-text { font-size: 1.1rem; font-weight: 600; flex: 1; }
+        .slot .slot-remove {
+            background: transparent; border: none; color: var(--text-dim);
+            font-size: 1.2rem; cursor: pointer; padding: 0.2rem 0.5rem;
+        }
+        .slot .slot-remove:hover { color: var(--danger); }
+        .pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            justify-content: center;
+            padding: 1.2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            min-height: 80px;
+        }
+        .pool-card {
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 0.7rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pool-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(99,102,241,0.25);
+        }
+        .actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1.3rem; }
+        .result-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            min-height: 3rem;
+        }
+        .result-panel .ok-line { color: var(--success); font-weight: 600; }
+        .result-panel .bad-line { color: var(--danger); font-weight: 600; }
+        .round-info { font-size: 1rem; color: var(--text-dim); margin-bottom: 0.8rem; }
+        .round-info b { color: var(--text); }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <a href="index.html" class="back-btn">← 返回目录</a>
+        <div class="score-board">
+            <div class="score-label">得分</div>
+            <div class="score-value" id="score">0</div>
+        </div>
+        <div class="timer" id="timer">60</div>
+        <div class="game-header">
+            <h1>🔀 业务流程排排站</h1>
+            <div class="subtitle">把打乱的流程步骤按正确顺序排列</div>
+        </div>
+
+        <div id="startScreen" class="screen">
+            <h2>🔀 业务流程排排站</h2>
+            <p>系统随机抽取一套业务流程（营销流程/经销商流程/供应链链条/经销商生命周期/智能客服流程/指标体系构建），步骤顺序被打乱。</p>
+            <p>按正确顺序<b>点击卡片</b>放入序号槽位，可点击 <b>✕</b> 撤回重排，全部排好后点击"确认顺序"。</p>
+            <p><b>60秒</b>限时挑战：全对得 <b>步数×10分</b>，剩余每秒额外 +1 分！排错可撤销重试。</p>
+            <p style="color:var(--text-dim);">适合一人操作、全班指挥的课堂互动！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始挑战</button>
+        </div>
+
+        <div id="gameScreen" class="screen hidden" style="background:transparent;">
+            <div class="game-area">
+                <div class="flow-title">
+                    <div class="label">📋 本轮流程</div>
+                    <div class="name" id="flowName"></div>
+                </div>
+                <div class="round-info">第 <b id="roundNum">1</b> / <b>3</b> 轮</div>
+                <div class="slots" id="slots"></div>
+                <div class="pool" id="pool"></div>
+                <div class="actions">
+                    <button class="btn btn-primary" id="confirmBtn">确认顺序</button>
+                </div>
+                <div class="result-panel" id="resultPanel"></div>
+            </div>
+        </div>
+
+        <div id="endScreen" class="screen hidden">
+            <h2>🎉 挑战完成</h2>
+            <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
+            <p id="endMessage"></p>
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
+                <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/games.js"></script>
+    <script>
+        const flows = [
+            { name: '营销业务流程', steps: ['市场调研与分析', '目标市场选择与定位', '营销策划与策略制定', '营销活动执行', '效果评估与反馈'] },
+            { name: '经销商服务流程', steps: ['售前咨询与合作洽谈', '获取商品信息与资料', '商品上架', '营销推广', '售后处理'] },
+            { name: '物流供应链组成链条', steps: ['供应商', '生产商', '分销商', '零售商', '消费者'] },
+            { name: '经销商生命周期阶段', steps: ['引入期：寻找和筛选潜在经销商', '成长期：业绩快速增长', '成熟期：业绩趋于稳定', '衰退期：业绩逐渐下滑'] },
+            { name: '客户服务智能化应用流程', steps: ['客户接入与需求识别', '信息检索与问题处理', '交互与反馈'] },
+            { name: '营销指标体系构建步骤', steps: ['确定指标分类', '筛选与定义指标', '构建指标体系框架', '设定指标权重'] }
+        ];
+
+        let gameFlows = [], round = 0, score = 0, placed = [], available = [], timerObj = null, roundLocked = false;
+
+        document.getElementById('startBtn').onclick = startGame;
+        document.getElementById('restartBtn').onclick = startGame;
+        document.getElementById('confirmBtn').onclick = confirmOrder;
+
+        function startGame() {
+            gameFlows = shuffle(flows).slice(0, 3);
+            round = 0; score = 0;
+            document.getElementById('score').textContent = '0';
+            showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
+            startRound();
+        }
+
+        function startRound() {
+            roundLocked = false;
+            placed = [];
+            const flow = gameFlows[round];
+            available = shuffle(flow.steps.map((s, i) => ({ text: s, id: i })));
+            document.getElementById('roundNum').textContent = round + 1;
+            document.getElementById('flowName').textContent = flow.name + '（共 ' + flow.steps.length + ' 步）';
+            document.getElementById('resultPanel').innerHTML = '';
+            renderSlots();
+            renderPool();
+            document.getElementById('timer').textContent = '60';
+            document.getElementById('timer').classList.remove('warning');
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(60, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 10) document.getElementById('timer').classList.add('warning');
+            }, () => { confirmOrder(true); });
+        }
+
+        function renderSlots() {
+            const flow = gameFlows[round];
+            const wrap = document.getElementById('slots');
+            wrap.innerHTML = '';
+            for (let i = 0; i < flow.steps.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot' + (placed[i] !== undefined ? ' filled' : '');
+                const num = document.createElement('div');
+                num.className = 'slot-num';
+                num.textContent = i + 1;
+                slot.appendChild(num);
+                if (placed[i] !== undefined) {
+                    const txt = document.createElement('div');
+                    txt.className = 'slot-text';
+                    txt.textContent = placed[i].text;
+                    slot.appendChild(txt);
+                    const rm = document.createElement('button');
+                    rm.className = 'slot-remove';
+                    rm.textContent = '✕';
+                    rm.title = '撤回这一步';
+                    rm.onclick = () => {
+                        if (roundLocked) return;
+                        available.push(placed[i]);
+                        placed.splice(i, 1);
+                        renderSlots(); renderPool();
+                    };
+                    slot.appendChild(rm);
+                } else {
+                    const txt = document.createElement('div');
+                    txt.className = 'slot-text';
+                    txt.style.color = 'var(--text-dim)';
+                    txt.style.opacity = '0.5';
+                    txt.textContent = '点击下方卡片放入第 ' + (i + 1) + ' 步';
+                    slot.appendChild(txt);
+                }
+                wrap.appendChild(slot);
+            }
+        }
+
+        function renderPool() {
+            const wrap = document.getElementById('pool');
+            wrap.innerHTML = '';
+            available.forEach(card => {
+                const btn = document.createElement('button');
+                btn.className = 'pool-card';
+                btn.textContent = card.text;
+                btn.onclick = () => {
+                    if (roundLocked) return;
+                    placed.push(card);
+                    available = available.filter(c => c.id !== card.id);
+                    renderSlots(); renderPool();
+                };
+                wrap.appendChild(btn);
+            });
+            if (available.length === 0) {
+                const tip = document.createElement('div');
+                tip.style.cssText = 'color:var(--text-dim);font-size:0.95rem;align-self:center;';
+                tip.textContent = '所有卡片已放入，点击"确认顺序"';
+                wrap.appendChild(tip);
+            }
+        }
+
+        function confirmOrder(timeout) {
+            if (roundLocked) return;
+            if (!timeout && placed.length < gameFlows[round].steps.length) return;
+            roundLocked = true;
+            if (timerObj) timerObj.stop();
+
+            const flow = gameFlows[round];
+            const panel = document.getElementById('resultPanel');
+            const allCorrect = placed.length === flow.steps.length && placed.every((c, i) => c.id === i);
+
+            if (allCorrect) {
+                const remain = parseInt(document.getElementById('timer').textContent) || 0;
+                const pts = flow.steps.length * 10 + remain;
+                score += pts;
+                updateScore(score);
+                let lines = '<div class="ok-line">✓ 完全正确！+' + (flow.steps.length * 10) + '分';
+                if (!timeout && remain > 0) lines += '（速度奖励 +' + remain + '分）';
+                lines += '</div>';
+                lines += '<div>正确顺序：' + flow.steps.map((s, i) => (i + 1) + '.' + s).join(' → ') + '</div>';
+                panel.innerHTML = lines;
+            } else {
+                let lines = '<div class="bad-line">✗ 顺序有误（或未完成）</div>';
+                lines += '<div>你的排列：' + (placed.length ? placed.map(c => c.text).join(' → ') : '未排列') + '</div>';
+                lines += '<div>正确顺序：' + flow.steps.map((s, i) => (i + 1) + '.' + s).join(' → ') + '</div>';
+                panel.innerHTML = lines;
+            }
+
+            setTimeout(() => {
+                round++;
+                if (round >= gameFlows.length) {
+                    endGame();
+                } else {
+                    startRound();
+                }
+            }, 4200);
+        }
+
+        function endGame() {
+            showScreen('end');
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('finalScore').textContent = score;
+            let msg = '';
+            if (score >= 200) msg = '🏆 流程大师！各类业务流程你都了然于胸！';
+            else if (score >= 120) msg = '⭐ 表现不错！流程顺序掌握得很扎实！';
+            else if (score >= 60) msg = '💪 还有提升空间，建议对照课件复习各业务流程！';
+            else msg = '📚 建议重新学习五大业务域的业务流程知识哦！';
+            document.getElementById('endMessage').textContent = msg;
+        }
+    </script>
+</body>
+</html>
