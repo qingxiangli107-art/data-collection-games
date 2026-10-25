@@ -3,8 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏆 业务域知识擂台</title>
+    <title>🏆 业务域知识大挑战</title>
     <link rel="stylesheet" href="css/games.css">
+    <style>
+        .domain-tag {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+        .q-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .q-option {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 1.2rem 1rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .q-option:hover:not(:disabled) {
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99,102,241,0.2);
+        }
+        .q-option.correct {
+            background: rgba(16,185,129,0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .q-option.wrong {
+            background: rgba(239,68,68,0.2);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .q-option:disabled { cursor: default; }
+        .q-text {
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.6;
+        }
+        .q-explain {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-top: 1rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            min-height: 3rem;
+        }
+        @media (max-width: 768px) {
+            .q-options { grid-template-columns: 1fr; }
+            .q-text { font-size: 1.1rem; }
+        }
+    </style>
 </head>
 <body>
     <div class="game-container">
@@ -13,35 +77,38 @@
             <div class="score-label">得分</div>
             <div class="score-value" id="score">0</div>
         </div>
+        <div class="timer" id="timer">15</div>
         <div class="game-header">
-            <h1>🏆 业务域知识擂台</h1>
-            <div class="subtitle">5大业务域知识抢答，分组PK</div>
+            <h1>🏆 业务域知识大挑战</h1>
+            <div class="subtitle">营销域 · 商品域 · 渠道域 · 物流供应链域 · 服务域</div>
         </div>
 
         <div id="startScreen" class="screen">
-            <h2>🏆 业务域知识擂台</h2>
-            <p>5大电商业务域（营销/商品/渠道/物流/服务）各出2道题，共10题。</p>
-            <p style="color:var(--text-dim);">全班分为若干小组，轮流抢答，答对得分！</p>
-            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始擂台</button>
+            <h2>🏆 业务域知识大挑战</h2>
+            <p>题目覆盖课程五大业务域的核心知识：营销域、商品域、渠道域、物流供应链域、服务域。</p>
+            <p>共 <b>10</b> 道四选一选择题，每题 <b>15秒</b> 倒计时，答对得 <b>10分</b>，答错会显示正确答案和解析！</p>
+            <p style="color:var(--text-dim);">适合课堂全班抢答，每人轮流作答！</p>
+            <button class="btn btn-primary" id="startBtn" style="font-size:1.5rem;padding:1rem 3rem;">开始挑战</button>
         </div>
 
         <div id="gameScreen" class="screen hidden" style="background:transparent;">
             <div class="game-area">
-                <div style="font-size:1.2rem;color:var(--text-dim);margin-bottom:1rem;">
-                    第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题 | 
-                    <span id="domainTag" style="color:var(--accent);font-weight:700;"></span>
+                <div style="font-size:1.1rem;color:var(--text-dim);margin-bottom:0.8rem;">第 <span id="qNum">1</span> / <span id="qTotal">10</span> 题</div>
+                <div class="question-box" style="flex-direction:column;align-items:stretch;gap:0.8rem;padding:1.8rem;">
+                    <span class="domain-tag" id="domainTag"></span>
+                    <div class="q-text" id="qText"></div>
                 </div>
-                <div class="question-box" id="questionBox"></div>
-                <div id="optionsArea" style="width:100%;max-width:800px;"></div>
+                <div class="q-options" id="qOptions"></div>
+                <div class="q-explain" id="qExplain"></div>
             </div>
         </div>
 
         <div id="endScreen" class="screen hidden">
-            <h2>🎉 擂台结束</h2>
+            <h2>🎉 挑战完成</h2>
             <p style="font-size:2rem;color:var(--accent);margin:1rem 0;">最终得分：<span id="finalScore">0</span></p>
             <p id="endMessage"></p>
             <div style="display:flex;gap:1rem;justify-content:center;margin-top:2rem;">
-                <button class="btn btn-primary" id="restartBtn">再来一局</button>
+                <button class="btn btn-primary" id="restartBtn">再玩一次</button>
                 <a href="index.html" class="btn btn-secondary" style="text-decoration:none;">返回目录</a>
             </div>
         </div>
@@ -50,29 +117,55 @@
     <script src="js/games.js"></script>
     <script>
         const questions = [
-            { domain: '营销域', q: '以下哪个指标最能反映广告投放效果？', options: ['曝光量', '点击率', '收藏数', '分享数'], answer: 1 },
-            { domain: '营销域', q: 'ROI（投资回报率）的计算公式是？', options: ['利润÷成本', '销售额÷成本', '（收益-成本）÷成本', '点击量÷曝光量'], answer: 2 },
-            { domain: '商品域', q: '商品SKU是指？', options: ['商品编号', '库存量单位', '商品分类', '销售价格'], answer: 1 },
-            { domain: '商品域', q: '以下哪个属于商品域核心指标？', options: ['物流时效', '商品转化率', '客服响应时间', '退货处理速度'], answer: 1 },
-            { domain: '渠道域', q: '全域营销中的"全域"指的是？', options: ['所有商品', '所有平台渠道', '所有用户', '所有地区'], answer: 1 },
-            { domain: '渠道域', q: '以下哪个不属于常见的电商渠道？', options: ['淘宝', '抖音', '微信朋友圈', 'ERP系统'], answer: 3 },
-            { domain: '物流域', q: '物流供应链中，WMS是指？', options: ['仓库管理系统', '运输管理系统', '订单管理系统', '客户管理系统'], answer: 0 },
-            { domain: '物流域', q: '以下哪个指标最能反映物流效率？', options: ['库存周转率', '发货及时率', '订单取消率', '页面停留时间'], answer: 1 },
-            { domain: '服务域', q: 'DSR评分包含哪三个维度？', options: ['描述相符/服务态度/发货速度', '价格/质量/速度', '好评/中评/差评', '售前/售中/售后'], answer: 0 },
-            { domain: '服务域', q: '客服首次响应时间的行业标准一般是？', options: ['5分钟内', '30秒内', '1小时内', '24小时内'], answer: 1 }
+            // ===== 营销域 =====
+            { domain: '营销域', q: '市场调研与分析不包括以下哪项内容？', options: ['行业趋势研究', '竞争对手分析', '消费者需求和行为分析', '仓库空间利用率分析'], answer: 3, explain: '市场调研与分析包括：行业趋势研究、竞争对手分析、消费者需求和行为分析三方面。仓库空间利用率属于物流供应链域指标。' },
+            { domain: '营销域', q: '营销业务流程的第一步是什么？', options: ['营销策划与策略制定', '市场调研与分析', '营销活动执行', '效果评估与反馈'], answer: 1, explain: '营销业务流程5步：①市场调研与分析 ②目标市场选择与定位 ③营销策划与策略制定 ④营销活动执行 ⑤效果评估与反馈。' },
+            { domain: '营销域', q: '营销活动执行的三要素不包括以下哪项？', options: ['制定详细计划', '组织协调资源', '监控管理活动', '大规模降价促销'], answer: 3, explain: '营销活动执行三要素：制定详细计划、组织协调资源、监控管理活动。降价促销属于营销策略而非执行要素。' },
+            { domain: '营销域', q: '构建指标体系框架时，指标体系分为三个层次，不包括以下哪层？', options: ['总体目标层', '关键指标层', '细分指标层', '供应商数据层'], answer: 3, explain: '指标体系框架分三层：总体目标层、关键指标层、细分指标层（可按实际情况添加、删除）。' },
+            { domain: '营销域', q: '"品牌曝光量、社交媒体互动量、新客占比"这组指标主要用于衡量什么？', options: ['品牌知名度', '物流效率', '经销商忠诚度', '客服响应速度'], answer: 0, explain: '提升品牌知名度的关键指标体系包括：曝光类（品牌曝光量等）、互动类（社交媒体互动量等）、认知类（新客占比等）、传播类指标。' },
+
+            // ===== 商品域 =====
+            { domain: '商品域', q: '"食品安全、成分健康、无有害添加"属于马斯洛需求层次中的哪一层？', options: ['生理需要', '安全需要', '社交需要', '尊重需要'], answer: 1, explain: '马斯洛需求层次5层：生理需要、安全需要、社交需要、尊重需要、自我实现需要。食品安全属于安全需要。' },
+            { domain: '商品域', q: '影响消费者需求的因素不包括以下哪类？', options: ['个人因素', '社会因素', '心理因素', '物流成本因素'], answer: 3, explain: '影响消费者需求的因素分三类：个人因素（年龄、收入等）、社会因素（文化、家庭等）、心理因素（感知、态度等）。' },
+            { domain: '商品域', q: '通过分析微博、微信、抖音上消费者发布的内容来了解需求，属于哪种需求挖掘方法？', options: ['问卷调查', '社交媒体监测', '深度访谈', '焦点小组'], answer: 1, explain: '消费者需求挖掘方法3种：问卷调查、社交媒体监测、深度访谈。分析社交平台发布内容属于社交媒体监测。' },
+            { domain: '商品域', q: '选品组货的原则不包括以下哪项？', options: ['市场需求导向', '品质保障', '多样性', '延长供应链长度'], answer: 3, explain: '选品组货4原则：市场需求导向、品质保障、多样性、利润考量。' },
+            { domain: '商品域', q: '"发现哪些商品经常被一起购买"的数据挖掘技术叫什么？', options: ['个性化推荐', '关联分析', '情感分析', '智能预测'], answer: 1, explain: '关联分析是一种数据挖掘技术，用于发现数据集中不同变量之间的关联关系，例如哪些商品经常被一起购买，应用于超市货架布局、在线购物推荐等。' },
+
+            // ===== 渠道域 =====
+            { domain: '渠道域', q: '以下哪项不属于线上经销商的类型？', options: ['旗舰店', '专卖店', '区域经销商', '专营店'], answer: 2, explain: '线上经销商：旗舰店、专卖店、专营店、达人经销商；线下经销商：独家、普通、特约、区域经销商。区域经销商属于线下。' },
+            { domain: '渠道域', q: '成为达人经销商，一般要求粉丝数量达到多少？', options: ['1000人以上', '5000人以上', '10000人以上', '100000人以上'], answer: 2, explain: '达人经销商资质要求：①粉丝>10000人；②带货每场GMV达1万以上且趋势平稳递增；③带货口碑4.5以上。' },
+            { domain: '渠道域', q: '经销商生命周期运营的第二阶段是什么？', options: ['引入期', '成长期', '成熟期', '衰退期'], answer: 1, explain: '经销商生命周期4阶段：引入期（寻找筛选）→成长期（业绩快速增长）→成熟期（业绩稳定）→衰退期（业绩下滑）。' },
+            { domain: '渠道域', q: '根据"销售能力指标"划分，经销商可以分为以下哪几类？', options: ['大型、中型、小型经销商', '渠道多元化、传统型、新兴电商型经销商', '财务稳健型、财务风险型经销商', '长期忠诚型、短期合作型经销商'], answer: 1, explain: '经销商画像5大分类：经营规模→大型/中型/小型；销售能力→渠道多元化/传统型/新兴电商型；财务状况→稳健型/风险型；合作意愿→长期忠诚型/短期合作型；发展潜力→高潜力/稳定型/低潜力。' },
+            { domain: '渠道域', q: '经销商服务流程的正确顺序是什么？', options: ['商品上架→售前咨询→营销推广→售后处理→获取商品信息', '售前咨询与合作洽谈→获取商品信息与资料→商品上架→营销推广→售后处理', '获取商品信息→营销推广→售前咨询→商品上架→售后处理', '售前咨询→营销推广→获取商品信息→售后处理→商品上架'], answer: 1, explain: '经销商服务流程5步：①售前咨询与合作洽谈 ②获取商品信息与资料 ③商品上架 ④营销推广 ⑤售后处理。' },
+
+            // ===== 物流供应链域 =====
+            { domain: '物流供应链域', q: '物流供应链的基本环节不包括以下哪项？', options: ['采购物流环节', '生产物流环节', '销售物流环节', '营销推广环节'], answer: 3, explain: '物流供应链4个基本环节：采购物流、生产物流、销售物流、逆向物流。营销推广不属于物流环节。' },
+            { domain: '物流供应链域', q: '物流供应链的终点角色是谁？', options: ['供应商', '生产商', '分销商', '消费者'], answer: 3, explain: '供应链组成：供应商→生产商→分销商→零售商→消费者。消费者是终点，其需求和购买行为决定了整个供应链的运作方向。' },
+            { domain: '物流供应链域', q: '物流能力的构成要素不包括以下哪项？', options: ['运输能力', '配送能力', '应急处理能力', '品牌设计能力'], answer: 3, explain: '物流能力六要素：运输能力、仓储能力、配送能力、成本控制能力、供应链协同能力、应急处理能力。' },
+            { domain: '物流供应链域', q: '由正向供应链和退货再利用、维修、再制造等逆向运作形成的系统叫什么架构？', options: ['直链式架构', '闭环架构', '星型架构', '树状架构'], answer: 1, explain: '物流供应链两种主要架构：直链式架构（线性链条）和闭环架构（正向+退货再利用/维修/再制造/再循环/废弃处理的逆向闭环）。' },
+            { domain: '物流供应链域', q: '想"降低运营成本"，应重点关注以下哪个指标？', options: ['品牌曝光量', '缺货成本', '带货转化率', '问题解决率'], answer: 1, explain: '降低运营成本需重点关注：物流总成本、单位运输成本、库存持有成本率、仓储成本占比、缺货成本、退货处理成本等。' },
+
+            // ===== 服务域 =====
+            { domain: '服务域', q: '能够理解用户的语音指令并执行任务（如设置提醒、发送消息）的智能化应用是？', options: ['智能质检系统', '语音助手', '自助服务系统', '情感分析系统'], answer: 1, explain: '语音助手能理解用户的语音指令，并执行查询信息、设置提醒、发送消息等任务。语音识别系统则负责将语音转换为文字。' },
+            { domain: '服务域', q: '专注于分析文本、语音中情感倾向（积极/消极/中性）的智能化应用是？', options: ['智能推荐系统', '虚拟助手', '情感分析系统', '智能预测系统'], answer: 2, explain: '情感分析系统对文本、语音等信息中的情感倾向进行分析和判断，应用于客户反馈、社交媒体监测、产品评价等场景。' },
+            { domain: '服务域', q: '"用户自主完成密码重置、订单跟踪等操作，无需人工干预"属于哪类智能化应用？', options: ['自助服务系统', '智能质检系统', '智能预测系统', '语音识别系统'], answer: 0, explain: '自助服务系统让用户自主完成一系列操作，如自助注册、密码重置、订单跟踪等，无需依赖人工干预。' },
+            { domain: '服务域', q: '客户服务智能化应用流程的第一步是什么？', options: ['交互与反馈', '信息检索与问题处理', '客户接入与需求识别', '数据存储与归档'], answer: 2, explain: '客户服务智能化流程3步：①客户接入与需求识别 ②信息检索与问题处理 ③交互与反馈。' },
+            { domain: '服务域', q: '智能客服机器人评估指标中，"转人工率"属于哪类指标？', options: ['服务效果类指标', '服务效率类指标', '客户体验类指标', '服务转接类指标'], answer: 3, explain: '智能客服评估指标4类：服务效果类（回答准确率、问题解决率等）、服务效率类（响应时间等）、客户体验类（满意度等）、服务转接类（转人工率）。' }
         ];
 
-        let currentQ = 0, score = 0, gameQuestions = [];
+        let currentQ = 0, score = 0, timerObj = null, gameQuestions = [];
 
         document.getElementById('startBtn').onclick = startGame;
         document.getElementById('restartBtn').onclick = startGame;
 
         function startGame() {
             currentQ = 0; score = 0;
-            gameQuestions = shuffle(questions);
+            gameQuestions = shuffle(questions).slice(0, 10);
             document.getElementById('score').textContent = '0';
             document.getElementById('qTotal').textContent = gameQuestions.length;
+            document.getElementById('qExplain').innerHTML = '';
             showScreen('game');
+            document.getElementById('timer').style.display = 'flex';
             showQuestion();
         }
 
@@ -83,59 +176,72 @@
             }
             const q = gameQuestions[currentQ];
             document.getElementById('qNum').textContent = currentQ + 1;
-            document.getElementById('domainTag').textContent = q.domain;
-            document.getElementById('questionBox').textContent = q.q;
+            const tag = document.getElementById('domainTag');
+            tag.textContent = '📦 ' + q.domain;
+            tag.style.background = 'rgba(99,102,241,0.2)';
+            tag.style.color = 'var(--primary-light)';
+            document.getElementById('qText').textContent = q.q;
+            document.getElementById('qExplain').innerHTML = '';
 
-            const opts = document.getElementById('optionsArea');
-            opts.innerHTML = '';
-            q.options.forEach((opt, i) => {
+            const grid = document.getElementById('qOptions');
+            grid.innerHTML = '';
+            q.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.textContent = String.fromCharCode(65 + i) + '. ' + opt;
-                btn.onclick = () => answer(i);
-                opts.appendChild(btn);
+                btn.className = 'q-option';
+                btn.textContent = opt;
+                btn.onclick = () => answer(idx);
+                grid.appendChild(btn);
+            });
+
+            document.getElementById('timer').textContent = '15';
+            document.getElementById('timer').classList.remove('warning');
+            if (timerObj) timerObj.stop();
+            timerObj = startTimer(15, (r) => {
+                document.getElementById('timer').textContent = r;
+                if (r <= 3) document.getElementById('timer').classList.add('warning');
+            }, () => {
+                answer(null);
             });
         }
 
         function answer(choice) {
+            if (timerObj) timerObj.stop();
             const q = gameQuestions[currentQ];
             const correct = choice === q.answer;
-            const btns = document.getElementById('optionsArea').children;
+            const buttons = document.querySelectorAll('.q-option');
 
             if (correct) {
                 score += 10;
                 updateScore(score);
-                showFeedback('✓', 'correct');
-                btns[choice].classList.add('correct');
+                showFeedback('✓ 回答正确！', 'correct');
+                buttons[q.answer].classList.add('correct');
             } else {
-                showFeedback('✗', 'wrong');
-                btns[choice].classList.add('wrong');
-                btns[q.answer].classList.add('correct');
+                showFeedback('✗ 回答错误', 'wrong');
+                if (choice !== null && choice >= 0 && choice < buttons.length) {
+                    buttons[choice].classList.add('wrong');
+                }
+                buttons[q.answer].classList.add('correct');
             }
 
-            for (let btn of btns) btn.disabled = true;
+            document.getElementById('qExplain').innerHTML = '<b style="color:' + (correct ? 'var(--success)' : 'var(--danger)') + ';">' + (correct ? '✓ ' : '✗ ') + '</b>' + q.explain;
+            buttons.forEach(btn => btn.disabled = true);
 
             setTimeout(() => {
                 currentQ++;
                 showQuestion();
-            }, 1500);
+            }, 3200);
         }
 
         function endGame() {
             showScreen('end');
+            document.getElementById('timer').style.display = 'none';
             document.getElementById('finalScore').textContent = score;
             let msg = '';
-            if (score >= 90) msg = '🏆 业务域知识大师！你对电商业务了如指掌！';
-            else if (score >= 70) msg = '⭐ 表现优秀！继续深化业务理解！';
-            else if (score >= 50) msg = '💪 基础不错，建议多关注各业务域指标！';
-            else msg = '📚 建议多复习5大业务域的核心知识！';
+            if (score >= 90) msg = '🏆 业务域通才！五大业务域知识全部掌握！';
+            else if (score >= 70) msg = '⭐ 表现不错！业务域知识掌握得很扎实！';
+            else if (score >= 50) msg = '💪 还有提升空间，建议复习薄弱业务域的知识储备！';
+            else msg = '📚 建议重新学习项目二五大业务域的知识储备内容哦！';
             document.getElementById('endMessage').textContent = msg;
-        }
-
-        function showScreen(name) {
-            ['startScreen','gameScreen','endScreen'].forEach(id => {
-                document.getElementById(id).classList.toggle('hidden', id !== name + 'Screen');
-            });
         }
     </script>
 </body>
